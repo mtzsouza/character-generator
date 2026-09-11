@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Character Population Generator</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="page-header">
+      <div>
+        <h1>Character Population Generator</h1>
+      </div>
+      <div class="header-actions">
+        <button id="exportBtn" class="icon-button" type="button" title="Export CSV" aria-label="Export CSV"><i data-lucide="download" aria-hidden="true"></i></button>
+        <button id="importBtn" class="icon-button" type="button" title="Import CSV" aria-label="Import CSV"><i data-lucide="upload" aria-hidden="true"></i></button>
+        <input id="importFile" class="visually-hidden" type="file" accept="text/csv" />
+      </div>
+    </header>
+
+    <div class="workspace">
+      <aside class="sidebar">
+        <section class="panel controls">
+          <div class="section-heading">
+            <div>
+              <h2>Population</h2>
+            </div>
+          </div>
+          <label for="popSize">Population size
+            <input id="popSize" type="number" min="1" max="1000" value="50" />
+          </label>
+          <button id="generateBtn" class="primary-button">Generate population</button>
+        </section>
+
+        <section class="panel distribution-panel">
+          <div class="section-heading">
+            <div>
+              <h2>Trait controls</h2>
+            </div>
+            <span class="section-mark">μ</span>
+          </div>
+          <div id="probInputs"></div>
+        </section>
+
+      </aside>
+
+      <section class="analysis-column">
+        <section class="panel plot-panel">
+          <div class="svg-container"><svg id="scatterPlot" viewBox="0 0 900 500" preserveAspectRatio="none"></svg></div>
+          <div class="plot-toolbar">
+            <label for="pointSizeSlider" title="Point size"><i data-lucide="circle-dot" aria-hidden="true"></i><span class="visually-hidden">Point size</span><output id="pointSizeVal">4</output>
+              <input id="pointSizeSlider" type="range" min="1" max="8" step="0.5" value="4" />
+            </label>
+          </div>
+        </section>
+
+      </section>
+    </div>
+
+  <div class="tooltip" id="tooltip"></div>
+  <div id="profileModal" class="modal-backdrop" hidden>
+    <section class="profile-modal" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle">
+      <div class="modal-header">
+        <div>
+          <p class="modal-kicker">Character profile</p>
+          <h2 id="profileModalTitle">Selected character</h2>
+        </div>
+        <button id="closeProfileBtn" class="modal-close" type="button" aria-label="Close character details"><i data-lucide="x" aria-hidden="true"></i></button>
+      </div>
+      <div id="profile" class="profile">Select a point in the plot.</div>
+    </section>
+  </div>
+
+  <script src="https://unpkg.com/lucide@0.468.0"></script>
+  <script src="app.js" type="module"></script>
+</body>
+</html>
