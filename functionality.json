@@ -1,8 +1,0 @@
-[
-	{"key":"COG","name":"Cognition","description":"Understanding and communication."},
-	{"key":"MOB","name":"Mobility","description":"Movement and physical autonomy."},
-	{"key":"SELF","name":"Self-Care","description":"Hygiene and self-preservation."},
-	{"key":"REL","name":"Interpersonal Relationships","description":"Interaction with partners, family, and strangers."},
-	{"key":"LIFE","name":"Life Activities","description":"Domestic and work responsibilities."},
-	{"key":"SOC","name":"Social Participation","description":"Community integration and leisure."}
-]

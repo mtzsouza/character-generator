@@ -1,0 +1,74 @@
+{
+  "gender": {
+    "Masculino": 48.5,
+    "Feminino": 51.5
+  },
+  "ageRange": {
+    "Adulto jovem": 24,
+    "Adulto estabelecido": 30,
+    "Meia-idade": 26,
+    "Idoso": 20
+  },
+  "sexualOrientation": {
+    "Heterossexual": 88,
+    "Homossexual": 6,
+    "Bissexual": 6
+  },
+  "physicalHealth": {
+    "Saudável": 40,
+    "Atlético": 12,
+    "Obeso": 22,
+    "Pessoa com deficiência": 7,
+    "Condição crônica controlada": 10,
+    "Condição crônica limitante": 4,
+    "Em recuperação de doença": 2,
+    "Baixo condicionamento físico": 2,
+    "Saúde frágil": 1
+  },
+  "hereditaryPsychopathologyTendencies": {
+    "Nenhuma": 55,
+    "Transtornos depressivos": 12,
+    "Transtornos de ansiedade": 15,
+    "Transtorno bipolar": 2,
+    "Transtornos do espectro da esquizofrenia": 1,
+    "Transtorno obsessivo-compulsivo": 2,
+    "Transtorno de déficit de atenção/hiperatividade": 5,
+    "Condição do espectro autista": 2,
+    "Transtornos por uso de substâncias": 3,
+    "Transtornos alimentares": 1,
+    "Transtornos relacionados a trauma": 1,
+    "Transtornos de personalidade": 1
+  },
+  "hobbyDefault": "igual",
+  "occupationDefault": "igual dentro da faixa etária",
+  "sources": {
+    "gender": {
+      "label": "IBGE, Censo Demográfico 2022 (população por sexo)",
+      "url": "https://www.ibge.gov.br/estatisticas/sociais/populacao/22827-censo-demografico-2022.html"
+    },
+    "ageRange": {
+      "label": "IBGE, Censo Demográfico 2022 (estrutura etária da população adulta)",
+      "url": "https://www.ibge.gov.br/estatisticas/sociais/populacao/22827-censo-demografico-2022.html"
+    },
+    "sexualOrientation": {
+      "label": "Datafolha, Pesquisa sobre orientação sexual da população brasileira (2021)",
+      "url": "https://datafolha.folha.uol.com.br/"
+    },
+    "physicalHealth": {
+      "label": "Ministério da Saúde, Vigitel Brasil 2023 & IBGE PNS 2019 (prevalência de obesidade, doenças crônicas e deficiência)",
+      "url": "https://www.gov.br/saude/pt-br/centrais-de-conteudo/publicacoes/svsa/vigitel/vigitel-brasil-2023.pdf"
+    },
+    "hereditaryPsychopathologyTendencies": {
+      "label": "Organização Mundial da Saúde, World Mental Health Report (2022) e estimativas de prevalência ao longo da vida do NIMH",
+      "url": "https://www.who.int/publications/i/item/9789240049338"
+    },
+    "hobby": {
+      "label": "Instituto Locomotiva / SESC, Retratos do Lazer no Brasil",
+      "url": "https://www.sescsp.org.br/"
+    },
+    "occupation": {
+      "label": "IBGE, PNAD Contínua (estrutura ocupacional por faixa etária)",
+      "url": "https://www.ibge.gov.br/estatisticas/sociais/trabalho/9171-pesquisa-nacional-por-amostra-de-domicilios-continua-mensal.html"
+    }
+  }
+}

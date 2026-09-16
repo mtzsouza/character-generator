@@ -2,13 +2,53 @@
 // Runs deferred after DOM parsing
 
 // Trait definitions are loaded from the JSON data files before the app starts.
-const [personalityTraits, functionalTraits] = await Promise.all([
-  fetch('personality.json').then(response => response.json()),
-  fetch('functionality.json').then(response => response.json())
+const [personalityTraits, functionalTraits, names, occupations, hobbies, sexualOrientations, physicalHealthOptions, hereditaryTendencies, categoricalDefaults] = await Promise.all([
+  fetch('data/personality.json').then(response => response.json()),
+  fetch('data/functionality.json').then(response => response.json()),
+  fetch('data/names.json').then(response => response.json()),
+  fetch('data/occupation.json').then(response => response.json()),
+  fetch('data/hobby.json').then(response => response.json()),
+  fetch('data/sexualOrientation.json').then(response => response.json()),
+  fetch('data/physicalHealth.json').then(response => response.json()),
+  fetch('data/hereditaryPsychopathologyTendencies.json').then(response => response.json()),
+  fetch('data/categoricalProbabilities.json').then(response => response.json())
 ]);
 const personalityFacets = personalityTraits.flatMap(trait => trait.facets.map(facet => facet.key));
+// Neuroticism facets run in the opposite direction from the other four domains: higher N
+// means more anxiety/hostility/depression/vulnerability, which is the "negative" pole, while
+// higher E/O/A/C is generally the "positive" pole. The Trend slider is meant to skew the whole
+// generated personality toward more positive (+1) or more negative (-1); applied uniformly it
+// would push Neuroticism the wrong way (positive trend making people MORE anxious). So we
+// invert the trend's direction specifically for Neuroticism facets when sampling them.
+const neuroticismFacetKeys = new Set((personalityTraits.find(trait => trait.key === 'N') || {facets:[]}).facets.map(facet => facet.key));
 const functionalVars = functionalTraits.map(trait => trait.key);
 const allVars = [...personalityFacets, ...functionalVars];
+const ageRanges = Object.keys(occupations);
+const nameOptions = {
+  male: names.male.firstNames.flatMap(firstName => names.male.surnames.map(surname => `${firstName} ${surname}`)),
+  female: names.female.firstNames.flatMap(firstName => names.female.surnames.map(surname => `${firstName} ${surname}`))
+};
+const genderKeyMap = { 'Masculino': 'male', 'Feminino': 'female' };
+const categoricalTraits = {
+  gender: ['Masculino', 'Feminino'],
+  ageRange: ageRanges,
+  sexualOrientation: sexualOrientations,
+  physicalHealth: physicalHealthOptions,
+  hereditaryPsychopathologyTendencies: hereditaryTendencies,
+  hobby: hobbies,
+  occupation: [...new Set(Object.values(occupations).flat())]
+};
+function normalizedProbabilities(values, defaults = {}){
+  const probabilities = Object.fromEntries(values.map(value => [value, Math.max(0, Number(defaults[value]) || 0)]));
+  const total = Object.values(probabilities).reduce((sum, value) => sum + value, 0);
+  if(total > 0) return Object.fromEntries(Object.entries(probabilities).map(([value, probability]) => [value, +(probability / total * 100).toFixed(2)]));
+  return Object.fromEntries(values.map(value => [value, +(100 / values.length).toFixed(2)]));
+}
+
+const categoricalProbabilities = Object.fromEntries(Object.entries(categoricalTraits).map(([key, values]) => [
+  key,
+  normalizedProbabilities(values, categoricalDefaults[key])
+]));
 
 // Default six-block probabilities
 let blockProbs = [2.5,13.5,34,34,13.5,2.5];
@@ -34,23 +74,130 @@ function createLabeledSlider(container, id, labelText, min, max, step, value, on
   return inp;
 }
 
+const categoricalSources = categoricalDefaults.sources || {};
+
+const categoricalModal = document.createElement('div');
+categoricalModal.className = 'categorical-modal-backdrop';
+categoricalModal.hidden = true;
+categoricalModal.innerHTML = '<section class="categorical-modal" role="dialog" aria-modal="true" aria-labelledby="categoricalModalTitle"><div class="categorical-modal-header"><div class="categorical-modal-heading"><h2 id="categoricalModalTitle"></h2><a class="categorical-modal-source" href="#" target="_blank" rel="noopener noreferrer" title="fonte" aria-label="Fonte da probabilidade"><i data-lucide="info" aria-hidden="true"></i></a></div><button class="modal-close categorical-modal-close" type="button" aria-label="Fechar probabilidades do traço"><i data-lucide="x" aria-hidden="true"></i></button></div><div class="categorical-modal-content"></div></section>';
+document.body.appendChild(categoricalModal);
+const categoricalModalTitle = categoricalModal.querySelector('#categoricalModalTitle');
+const categoricalModalSource = categoricalModal.querySelector('.categorical-modal-source');
+const categoricalModalContent = categoricalModal.querySelector('.categorical-modal-content');
+let activeCategoricalGroup = null;
+let activeCategoricalOptions = null;
+
+function closeCategoricalModal(){
+  if(activeCategoricalGroup && activeCategoricalOptions){
+    activeCategoricalOptions.hidden = true;
+    activeCategoricalGroup.appendChild(activeCategoricalOptions);
+  }
+  activeCategoricalGroup = null;
+  activeCategoricalOptions = null;
+  categoricalModal.hidden = true;
+  document.body.classList.remove('modal-open');
+}
+
+function openCategoricalModal(group, label, options, traitKey){
+  if(activeCategoricalOptions) closeCategoricalModal();
+  activeCategoricalGroup = group;
+  activeCategoricalOptions = options;
+  options.hidden = false;
+  categoricalModalTitle.textContent = `Probabilidades de ${label}`;
+  const source = categoricalSources[traitKey];
+  if(source){
+    categoricalModalSource.href = source.url;
+    categoricalModalSource.title = 'fonte';
+    categoricalModalSource.setAttribute('aria-label', `Fonte da probabilidade: ${source.label}`);
+    categoricalModalSource.hidden = false;
+  } else {
+    categoricalModalSource.hidden = true;
+  }
+  categoricalModalContent.appendChild(options);
+  categoricalModal.hidden = false;
+  document.body.classList.add('modal-open');
+  if(window.lucide) window.lucide.createIcons();
+}
+
+function updateCategoricalProbability(traitKey, changedValue, changedProbability, options){
+  const probabilities = categoricalProbabilities[traitKey];
+  const otherValues = Object.keys(probabilities).filter(value => value !== changedValue);
+  const nextProbability = Math.max(0, Math.min(100, changedProbability));
+  probabilities[changedValue] = nextProbability;
+  const remaining = 100 - nextProbability;
+  const otherTotal = otherValues.reduce((sum, value) => sum + probabilities[value], 0);
+  if(otherTotal > 0){
+    otherValues.forEach(value => { probabilities[value] = +(probabilities[value] / otherTotal * remaining).toFixed(2); });
+  } else {
+    otherValues.forEach(value => { probabilities[value] = otherValues.length ? +(remaining / otherValues.length).toFixed(2) : 0; });
+  }
+  const displayedTotal = Object.values(probabilities).reduce((sum, value) => sum + value, 0);
+  const correction = +(100 - displayedTotal).toFixed(2);
+  if(otherValues.length) probabilities[otherValues[otherValues.length - 1]] = +(probabilities[otherValues[otherValues.length - 1]] + correction).toFixed(2);
+  options.querySelectorAll('input[type="range"]').forEach(input => {
+    const value = input.dataset.option;
+    input.value = probabilities[value];
+    input.nextElementSibling.textContent = `${probabilities[value].toFixed(2)}%`;
+  });
+  if(state.characters.length && state.generated) generatePopulation(state.characters.length);
+}
+
+const categoricalTraitLabels = {
+  gender: 'Gênero',
+  ageRange: 'Faixa etária',
+  sexualOrientation: 'Orientação sexual',
+  physicalHealth: 'Saúde física',
+  hereditaryPsychopathologyTendencies: 'Tendências de psicopatologia hereditária',
+  hobby: 'Hobby',
+  occupation: 'Ocupação'
+};
+
+function createProbabilityControls(container, traitKey, values){
+  const group = document.createElement('div');
+  group.className = 'categorical-group';
+  const label = categoricalTraitLabels[traitKey] || traitKey;
+  const trigger = document.createElement('button');
+  trigger.type = 'button';
+  trigger.className = 'categorical-trigger';
+  trigger.textContent = label;
+  const options = document.createElement('div');
+  options.className = 'categorical-options';
+  options.hidden = true;
+  values.forEach((value, index) => {
+    const input = createLabeledSlider(options, `${traitKey}-${index}`, value, 0, 100, 0.1, categoricalProbabilities[traitKey][value], (probability) => updateCategoricalProbability(traitKey, value, probability, options));
+    input.dataset.option = value;
+    input.nextElementSibling.textContent = `${categoricalProbabilities[traitKey][value].toFixed(2)}%`;
+  });
+  trigger.addEventListener('click', () => openCategoricalModal(group, label, options, traitKey));
+  group.appendChild(trigger);
+  container.appendChild(group);
+}
+
 // Clear any existing
 probInputs.innerHTML = '';
-const fGroup = document.createElement('div'); fGroup.className='prob-group'; fGroup.style.marginTop='6px'; fGroup.innerHTML = '<em>Functionality</em>';
+const fGroup = document.createElement('div'); fGroup.className='prob-group'; fGroup.style.marginTop='6px'; fGroup.innerHTML = '<em>Funcionalidade</em>';
 probInputs.appendChild(fGroup);
-createLabeledSlider(fGroup, 'functionalVariability', 'Variability', 0.2, 6.0, 0.1, functionalVariability, (v)=>{ functionalVariability = v; if(state.characters.length && state.generated) generatePopulation(state.characters.length); });
-createLabeledSlider(fGroup, 'functionalTrend', 'Trend', -1.0, 1.0, 0.05, functionalTrend, (v)=>{ functionalTrend = v; if(state.characters.length && state.generated) generatePopulation(state.characters.length); });
+createLabeledSlider(fGroup, 'functionalVariability', 'Variabilidade', 0.2, 6.0, 0.1, functionalVariability, (v)=>{ functionalVariability = v; if(state.characters.length && state.generated) generatePopulation(state.characters.length); });
+createLabeledSlider(fGroup, 'functionalTrend', 'Tendência', -1.0, 1.0, 0.05, functionalTrend, (v)=>{ functionalTrend = v; if(state.characters.length && state.generated) generatePopulation(state.characters.length); });
 
-const pGroup = document.createElement('div'); pGroup.className='prob-group'; pGroup.style.marginTop='6px'; pGroup.innerHTML = '<em>Personality</em>';
+const pGroup = document.createElement('div'); pGroup.className='prob-group'; pGroup.style.marginTop='6px'; pGroup.innerHTML = '<em>Personalidade</em>';
 probInputs.appendChild(pGroup);
-createLabeledSlider(pGroup, 'personalityVariability', 'Variability', 0.2, 6.0, 0.1, personalityVariability, (v)=>{ personalityVariability = v; if(state.characters.length && state.generated) generatePopulation(state.characters.length); });
-createLabeledSlider(pGroup, 'personalityTrend', 'Trend', -1.0, 1.0, 0.05, personalityTrend, (v)=>{ personalityTrend = v; if(state.characters.length && state.generated) generatePopulation(state.characters.length); });
+createLabeledSlider(pGroup, 'personalityVariability', 'Variabilidade', 0.2, 6.0, 0.1, personalityVariability, (v)=>{ personalityVariability = v; if(state.characters.length && state.generated) generatePopulation(state.characters.length); });
+createLabeledSlider(pGroup, 'personalityTrend', 'Tendência', -1.0, 1.0, 0.05, personalityTrend, (v)=>{ personalityTrend = v; if(state.characters.length && state.generated) generatePopulation(state.characters.length); });
 
-function applyVarTrend(value, variability, trend){
+const categoricalGroup = document.createElement('div');
+categoricalGroup.className = 'prob-group categorical-controls';
+categoricalGroup.innerHTML = '<em>Traços categóricos</em>';
+probInputs.appendChild(categoricalGroup);
+Object.entries(categoricalTraits).forEach(([traitKey, values]) => createProbabilityControls(categoricalGroup, traitKey, values));
+
+function applyVarTrend(value, variability, trend, invert){
   // variability: scale distance from center (5)
   let v = 5 + (value - 5) * variability;
-  // trend: mix toward 0 or 10
-  const t = Math.max(-1, Math.min(1, trend));
+  // trend: mix toward 0 or 10. For inverted facets (Neuroticism) the trend direction is
+  // flipped, so a positive ("more positive personality") trend still pushes Neuroticism
+  // toward 0 instead of 10, and a negative trend pushes it toward 10 instead of 0.
+  const t = Math.max(-1, Math.min(1, trend)) * (invert ? -1 : 1);
   const mix = Math.abs(t);
   if(mix>0){
     const target = t>0 ? 10 : 0;
@@ -64,7 +211,7 @@ function normalizeProbs(){
   let s = blockProbs.reduce((a,b)=>a+b,0);
   if(s<=0) s = 1;
   blockProbs = blockProbs.map(v=>+(v/s*100).toFixed(4));
-  probInputs.querySelectorAll('input').forEach((el,i)=>el.value=blockProbs[i]);
+  document.querySelectorAll('#scoreProbability-0, #scoreProbability-1, #scoreProbability-2, #scoreProbability-3, #scoreProbability-4, #scoreProbability-5').forEach((el,i)=>el.value=blockProbs[i]);
 }
 
 function pickBlockIndex(){
@@ -79,15 +226,55 @@ function sampleFromBlock(i){
   return +val.toFixed(2);
 }
 
+function pickWeighted(values, probabilities){
+  const weightedValues = values.map(value => ({value, weight: Math.max(0, probabilities[value] || 0)}));
+  const total = weightedValues.reduce((sum, item) => sum + item.weight, 0);
+  if(total <= 0) return values[Math.floor(Math.random() * values.length)];
+  let cursor = Math.random() * total;
+  for(const item of weightedValues){
+    cursor -= item.weight;
+    if(cursor <= 0) return item.value;
+  }
+  return weightedValues[weightedValues.length - 1].value;
+}
+
+function pickTrait(traitKey){
+  return pickWeighted(categoricalTraits[traitKey], categoricalProbabilities[traitKey]);
+}
+
+function pickName(gender){
+  const key = genderKeyMap[gender] || gender.toLowerCase();
+  return pickWeighted(nameOptions[key], Object.fromEntries(nameOptions[key].map(name => [name, 1])));
+}
+
+// Neuroticism facets are scored so that higher = more anxiety, hostility, depression,
+// self-consciousness, impulsiveness and vulnerability - the opposite valence of the other
+// four domains, where higher is generally the more adaptive pole (e.g. more trust, more
+// competence). Averaging all 30 facets flat would let a highly neurotic character drag the
+// score up instead of down. Instead we average domain-level scores and invert Neuroticism
+// into Emotional Stability (10 - N) first, which is the standard way to fold it into an
+// overall "positive personality" index.
+function personalityPositiveIndex(p){
+  const domainAverages = personalityTraits.map(trait => {
+    const values = trait.facets.map(facet => p[facet.key]);
+    const domainAvg = values.reduce((a,b)=>a+b,0) / values.length;
+    return trait.key === 'N' ? 10 - domainAvg : domainAvg;
+  });
+  return +(domainAverages.reduce((a,b)=>a+b,0) / domainAverages.length).toFixed(4);
+}
+
 function genCharacter(idNum){
   const id = 'CHAR-'+String(idNum).padStart(6,'0');
   const p = {};
   const f = {};
-  personalityFacets.forEach(name=>{ const raw = sampleFromBlock(pickBlockIndex()); p[name]=applyVarTrend(raw, personalityVariability, personalityTrend); });
+  personalityFacets.forEach(name=>{ const raw = sampleFromBlock(pickBlockIndex()); p[name]=applyVarTrend(raw, personalityVariability, personalityTrend, neuroticismFacetKeys.has(name)); });
   functionalVars.forEach(name=>{ const raw = sampleFromBlock(pickBlockIndex()); f[name]=applyVarTrend(raw, functionalVariability, functionalTrend); });
-  const pAvg = +(Object.values(p).reduce((a,b)=>a+b,0)/personalityFacets.length).toFixed(4);
+  const gender = pickTrait('gender');
+  const ageRange = pickTrait('ageRange');
+  const occupationPool = occupations[ageRange];
+  const pAvg = personalityPositiveIndex(p);
   const fAvg = +(Object.values(f).reduce((a,b)=>a+b,0)/functionalVars.length).toFixed(4);
-  return {id, personality:p, functional:f, personalityAvg:pAvg, functionalAvg:fAvg};
+  return {id, name: pickName(gender), gender, ageRange, occupation: pickWeighted(occupationPool, categoricalProbabilities.occupation), hobby: pickTrait('hobby'), sexualOrientation: pickTrait('sexualOrientation'), physicalHealth: pickTrait('physicalHealth'), hereditaryPsychopathologyTendencies: pickTrait('hereditaryPsychopathologyTendencies'), personality:p, functional:f, personalityAvg:pAvg, functionalAvg:fAvg};
 }
 
 function generatePopulation(n){
@@ -144,9 +331,9 @@ function renderScatter2D(svg){
   }
 
   // axis labels
-  const xLabel = document.createElementNS('http://www.w3.org/2000/svg','text'); xLabel.setAttribute('x',W/2); xLabel.setAttribute('y',H-6); xLabel.setAttribute('text-anchor','middle'); xLabel.classList.add('tick-text'); xLabel.textContent='Personality'; gAxes.appendChild(xLabel);
-  const yLabel = document.createElementNS('http://www.w3.org/2000/svg','text'); yLabel.setAttribute('x',14); yLabel.setAttribute('y',H/2); yLabel.setAttribute('transform',`rotate(-90 14 ${H/2})`); yLabel.setAttribute('text-anchor','middle'); yLabel.classList.add('tick-text'); yLabel.textContent='Functionality'; gAxes.appendChild(yLabel);
-  svg.setAttribute('aria-label', 'Personality by functionality score plot');
+  const xLabel = document.createElementNS('http://www.w3.org/2000/svg','text'); xLabel.setAttribute('x',W/2); xLabel.setAttribute('y',H-6); xLabel.setAttribute('text-anchor','middle'); xLabel.classList.add('tick-text'); xLabel.textContent='Personalidade'; gAxes.appendChild(xLabel);
+  const yLabel = document.createElementNS('http://www.w3.org/2000/svg','text'); yLabel.setAttribute('x',14); yLabel.setAttribute('y',H/2); yLabel.setAttribute('transform',`rotate(-90 14 ${H/2})`); yLabel.setAttribute('text-anchor','middle'); yLabel.classList.add('tick-text'); yLabel.textContent='Funcionalidade'; gAxes.appendChild(yLabel);
+  svg.setAttribute('aria-label', 'Gráfico de personalidade por funcionalidade');
 
   // append axes group first so it stays static
   svg.appendChild(gAxes);
@@ -193,10 +380,10 @@ function showProfile(ch){
   const profileDiv = document.getElementById('profile');
   const profileModal = document.getElementById('profileModal');
   document.getElementById('profileModalTitle').textContent = ch.id;
-  let html = `<div class="profile-summary"><div><span class="profile-label">Personality average</span><strong>${ch.personalityAvg.toFixed(4)}</strong></div><div><span class="profile-label">Functionality average</span><strong>${ch.functionalAvg.toFixed(4)}</strong></div></div>`;
-  html += '<section class="profile-section"><h3>Functionality</h3><div class="functional-grid">';
+  let html = `<div class="profile-summary"><div><span class="profile-label">Nome</span><strong>${ch.name}</strong></div><div><span class="profile-label">Gênero</span><strong>${ch.gender}</strong></div><div><span class="profile-label">Faixa etária</span><strong>${ch.ageRange}</strong></div><div><span class="profile-label">Ocupação</span><strong>${ch.occupation}</strong></div><div><span class="profile-label">Hobby</span><strong>${ch.hobby}</strong></div><div><span class="profile-label">Orientação sexual</span><strong>${ch.sexualOrientation}</strong></div><div><span class="profile-label">Saúde física</span><strong>${ch.physicalHealth}</strong></div><div><span class="profile-label">Tendência de psicopatologia hereditária</span><strong>${ch.hereditaryPsychopathologyTendencies}</strong></div><div><span class="profile-label">Média de personalidade</span><strong>${ch.personalityAvg.toFixed(4)}</strong></div><div><span class="profile-label">Média de funcionalidade</span><strong>${ch.functionalAvg.toFixed(4)}</strong></div></div>`;
+  html += '<section class="profile-section"><h3>Funcionalidade</h3><div class="functional-grid">';
   functionalTraits.forEach(trait => html += `<div class="profile-value"><span>${trait.name}<small>${trait.key}</small></span><strong>${ch.functional[trait.key].toFixed(2)}</strong></div>`);
-  html += '</div></section><section class="profile-section"><h3>Personality</h3><div class="profile-grid">';
+  html += '</div></section><section class="profile-section"><h3>Personalidade</h3><div class="profile-grid">';
   personalityTraits.forEach(trait=>{
     html += `<div class="profile-trait"><h4>${trait.name}</h4>`;
     trait.facets.forEach(facet=>{
@@ -217,16 +404,16 @@ function renderAll(){
 
 // CSV Export/Import
 function exportCSV(){
-  if(!state.characters.length) return alert('No population to export');
-  const header = ['Character ID', ...personalityFacets, ...functionalVars, 'Personality Average','Functionality Average'];
+  if(!state.characters.length) return alert('Nenhuma população para exportar');
+  const header = ['ID do Personagem', 'Nome', 'Gênero', 'Faixa etária', 'Ocupação', 'Hobby', 'Orientação sexual', 'Saúde física', 'Tendência de psicopatologia hereditária', ...personalityFacets, ...functionalVars, 'Média de Personalidade','Média de Funcionalidade'];
   const rows = [header.join(',')];
   state.characters.forEach(ch=>{
-    const line = [ch.id, ...personalityFacets.map(k=>ch.personality[k].toFixed(4)), ...functionalVars.map(k=>ch.functional[k].toFixed(4)), ch.personalityAvg.toFixed(4), ch.functionalAvg.toFixed(4)];
+    const line = [ch.id, ch.name, ch.gender, ch.ageRange, ch.occupation, ch.hobby, ch.sexualOrientation, ch.physicalHealth, ch.hereditaryPsychopathologyTendencies, ...personalityFacets.map(k=>ch.personality[k].toFixed(4)), ...functionalVars.map(k=>ch.functional[k].toFixed(4)), ch.personalityAvg.toFixed(4), ch.functionalAvg.toFixed(4)];
     rows.push(line.join(','));
   });
   const blob = new Blob([rows.join('\n')], {type:'text/csv'});
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download='population.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  const a = document.createElement('a'); a.href = url; a.download='populacao.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
 }
 
 function importCSVFile(file){
@@ -237,39 +424,54 @@ function importCSVFile(file){
 
 function parseCSV(text){
   const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(l=>l.length>0);
-  if(lines.length<2) return alert('CSV appears empty');
+  if(lines.length<2) return alert('O CSV parece estar vazio');
   const header = lines[0].split(',').map(h=>h.trim());
   const indices = {};
   header.forEach((h,i)=>indices[h]=i);
   // validate required columns
-  if(indices['Character ID'] === undefined) return alert('CSV missing Character ID column');
+  if(indices['ID do Personagem'] === undefined) return alert('O CSV não possui a coluna ID do Personagem');
   // build characters
   const chars = [];
   for(let i=1;i<lines.length;i++){
     const cols = lines[i].split(',');
-    const id = cols[indices['Character ID']];
+    const id = cols[indices['ID do Personagem']];
     const p = {}; const f = {};
     let valid=true;
     personalityFacets.forEach(k=>{ if(indices[k]!==undefined) p[k]=parseFloat(cols[indices[k]]); else valid=false; });
     functionalVars.forEach(k=>{ if(indices[k]!==undefined) f[k]=parseFloat(cols[indices[k]]); else valid=false; });
     if(!valid) continue;
-    const pAvg = +(Object.values(p).reduce((a,b)=>a+b,0)/personalityFacets.length).toFixed(4);
+    const pAvg = personalityPositiveIndex(p);
     const fAvg = +(Object.values(f).reduce((a,b)=>a+b,0)/functionalVars.length).toFixed(4);
-    chars.push({id, personality:p, functional:f, personalityAvg:pAvg, functionalAvg:fAvg});
+    chars.push({
+      id,
+      name: cols[indices['Nome']] || 'Personagem importado',
+      gender: cols[indices['Gênero']] || 'Masculino',
+      ageRange: cols[indices['Faixa etária']] || ageRanges[0],
+      occupation: cols[indices['Ocupação']] || occupations[ageRanges[0]][0],
+      hobby: cols[indices['Hobby']] || hobbies[0],
+      sexualOrientation: cols[indices['Orientação sexual']] || sexualOrientations[0],
+      physicalHealth: cols[indices['Saúde física']] || physicalHealthOptions[0],
+      hereditaryPsychopathologyTendencies: cols[indices['Tendência de psicopatologia hereditária']] || hereditaryTendencies[0],
+      personality:p,
+      functional:f,
+      personalityAvg:pAvg,
+      functionalAvg:fAvg
+    });
   }
-  if(!chars.length) return alert('No valid rows found in CSV');
+  if(!chars.length) return alert('Nenhuma linha válida encontrada no CSV');
   state.characters = chars;
   state.generated = false;
   renderAll();
 }
 
 // Wire UI
-document.getElementById('generateBtn').addEventListener('click', ()=>{
+function regenerateFromPopulationInput(){
   const n = parseInt(document.getElementById('popSize').value)||0;
-  if(n<=0) return alert('Enter a positive population size');
-  if(n>1000) return alert('Population size cannot exceed 1000');
+  if(n<=0) return alert('Informe um tamanho de população positivo');
+  if(n>1000) return alert('O tamanho da população não pode exceder 1000');
   generatePopulation(n);
-});
+}
+document.getElementById('popSize').addEventListener('change', regenerateFromPopulationInput);
 document.getElementById('exportBtn').addEventListener('click', exportCSV);
 document.getElementById('importBtn').addEventListener('click', ()=>document.getElementById('importFile').click());
 document.getElementById('importFile').addEventListener('change', (ev)=>{ const f = ev.target.files[0]; if(f) importCSVFile(f); });
@@ -301,6 +503,9 @@ function closeProfile(){
 closeProfileBtn.addEventListener('click', closeProfile);
 profileModal.addEventListener('click', (ev)=>{ if(ev.target === profileModal) closeProfile(); });
 window.addEventListener('keydown', (ev)=>{ if(ev.key === 'Escape' && !profileModal.hidden) closeProfile(); });
+categoricalModal.querySelector('.categorical-modal-close').addEventListener('click', closeCategoricalModal);
+categoricalModal.addEventListener('click', (ev)=>{ if(ev.target === categoricalModal) closeCategoricalModal(); });
+window.addEventListener('keydown', (ev)=>{ if(ev.key === 'Escape' && !categoricalModal.hidden) closeCategoricalModal(); });
 
 // initial render with default population
 generatePopulation(parseInt(document.getElementById('popSize').value));

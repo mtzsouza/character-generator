@@ -1,0 +1,10 @@
+{
+  "male": {
+    "firstNames": ["Joao", "Pedro", "Lucas", "Gabriel", "Miguel", "Arthur", "Bernardo", "Rafael", "Heitor", "Davi", "Guilherme", "Samuel", "Enzo", "Matheus", "Lorenzo", "Gustavo", "Henrique", "Theo", "Nicolas", "Murilo", "Felipe", "Martin", "Leonardo", "Isaac", "Vicente", "Benjamin", "Gael", "Joaquim", "Emanuel", "Caio", "Vinicius", "Breno", "Bruno", "Eduardo", "Daniel", "Anthony", "Bryan", "Yuri", "Vitor", "Levi", "Noah", "Luan", "Diego", "Carlos", "André", "Marcos", "Thiago", "Rodrigo", "Fernando", "Ricardo"],
+    "surnames": ["Silva", "Santos", "Oliveira", "Souza", "Pereira", "Costa", "Rodrigues", "Almeida", "Nascimento", "Lima", "Araujo", "Fernandes", "Carvalho", "Gomes", "Martins", "Rocha", "Ribeiro", "Alves", "Monteiro", "Mendes"]
+  },
+  "female": {
+    "firstNames": ["Maria", "Ana", "Julia", "Alice", "Sophia", "Laura", "Helena", "Valentina", "Heloisa", "Luiza", "Manuela", "Isabella", "Livia", "Lorena", "Cecilia", "Beatriz", "Mariana", "Clara", "Eloá", "Giovanna", "Gabriela", "Rafaela", "Isadora", "Amanda", "Yasmin", "Leticia", "Larissa", "Marina", "Melissa", "Sarah", "Valeria", "Camila", "Carolina", "Bianca", "Bruna", "Fernanda", "Aline", "Daniela", "Patricia", "Juliana", "Renata", "Tatiana", "Adriana", "Cristina", "Vanessa", "Priscila", "Natalia", "Sabrina", "Monica", "Claudia"],
+    "surnames": ["Silva", "Santos", "Oliveira", "Souza", "Pereira", "Costa", "Rodrigues", "Almeida", "Nascimento", "Lima", "Araujo", "Fernandes", "Carvalho", "Gomes", "Martins", "Rocha", "Ribeiro", "Alves", "Monteiro", "Mendes"]
+  }
+}

@@ -1,0 +1,67 @@
+[
+	{
+		"key":"N",
+		"name":"Neuroticismo",
+		"description":"Mede a instabilidade emocional, a reatividade afetiva e a predisposição a vivenciar emoções negativas ou sofrimento psicológico.",
+		"facets":[
+			{"key":"N1","name":"Ansiedade","description":"A tendência a vivenciar apreensão, medo, nervosismo e preocupação persistente. Escores altos indicam sensibilidade elevada ao risco e antecipação frequente de resultados catastróficos; escores baixos indicam calma e estabilidade."},
+			{"key":"N2","name":"Raiva e Hostilidade","description":"A propensão a vivenciar raiva, frustração, amargura e ressentimento. Escores altos refletem reatividade agressiva e facilidade de irritação; escores baixos refletem um temperamento ameno e difícil de provocar."},
+			{"key":"N3","name":"Depressão","description":"A tendência à culpa, tristeza, desânimo, solidão e desesperança. Escores altos indicam vulnerabilidade a humor rebaixado e sensação de impotência; escores baixos indicam resiliência emocional."},
+			{"key":"N4","name":"Autoconsciência","description":"Sensibilidade ao ridículo, vergonha, timidez social e constrangimento público. Escores altos geram desconforto na interação social e medo de julgamento; escores baixos indicam desenvoltura e baixa vulnerabilidade à rejeição."},
+			{"key":"N5","name":"Impulsividade","description":"Dificuldade em controlar desejos, impulsos e a atração por tentações imediatas, incluindo comida, gastos ou substâncias. Escores altos indicam baixa tolerância à frustração e tendências aditivas; escores baixos indicam controle dos impulsos."},
+			{"key":"N6","name":"Vulnerabilidade","description":"Dificuldade em lidar com situações de alta pressão ou crise, o que pode resultar em pânico, dependência de outros ou colapso executivo. Escores baixos refletem serenidade e eficácia sob estresse extremo."}
+		]
+	},
+	{
+		"key":"E",
+		"name":"Extroversão",
+		"description":"Mede a orientação interpessoal, o nível de energia, a assertividade e a busca por estimulação no ambiente externo.",
+		"facets":[
+			{"key":"E1","name":"Acolhimento","description":"A capacidade de demonstrar afeto, intimidade e empatia, e de estabelecer relações calorosas com facilidade. Escores baixos indicam distanciamento emocional, reserva e um modo mais formal."},
+			{"key":"E2","name":"Gregarismo","description":"A preferência por estar acompanhado, buscar multidões e passar tempo em ambientes altamente sociais. Escores baixos sinalizam preferência pela solidão e por ambientes interpessoais de baixa densidade."},
+			{"key":"E3","name":"Assertividade","description":"A tendência à dominância social, liderança, expressão firme de si e facilidade para falar em grupos. Escores baixos indicam passividade, reserva e preferência por ficar em segundo plano."},
+			{"key":"E4","name":"Atividade","description":"O ritmo e a velocidade de vida, o nível de energia motora e a necessidade de permanecer constantemente ocupado com tarefas diárias. Escores baixos refletem um ritmo mais lento e relaxado."},
+			{"key":"E5","name":"Busca por Excitação","description":"A necessidade de estimulação intensa, risco, novidade e sensações fortes no ambiente. Escores baixos refletem aversão ao risco e preferência por rotina e previsibilidade."},
+			{"key":"E6","name":"Emoções Positivas","description":"A tendência a vivenciar alegria, entusiasmo, otimismo, empolgação e humor elevado. Escores baixos não indicam necessariamente depressão, mas sim menos exuberância e maior sobriedade emocional."}
+		]
+	},
+	{
+		"key":"O",
+		"name":"Abertura à Experiência",
+		"description":"Mede a busca ativa e a apreciação de ideias inovadoras, experiências estéticas, valores não convencionais e flexibilidade cognitiva.",
+		"facets":[
+			{"key":"O1","name":"Fantasia","description":"A vivência de imaginação vívida, devaneios ativos e interesse em criar mundos mentais complexos. Escores baixos indicam foco estrito na realidade concreta e em fatos imediatos."},
+			{"key":"O2","name":"Estética","description":"Envolvimento profundo e apreciação por arte, música, poesia e beleza. Escores baixos indicam desinteresse por obras artísticas ou uma abordagem pragmática da sensibilidade estética."},
+			{"key":"O3","name":"Sentimentos","description":"Receptividade aos próprios estados emocionais internos e apreciação das emoções como parte central da vida. Escores baixos refletem diferenciação emocional limitada e pragmatismo afetivo."},
+			{"key":"O4","name":"Ações","description":"Disposição para experimentar novas atividades, viajar para lugares não convencionais ou provar alimentos diferentes. Escores baixos indicam forte preferência pela rotina e pelo familiar."},
+			{"key":"O5","name":"Ideias","description":"Curiosidade intelectual, prazer em debates teóricos, resolução de quebra-cabeças e abertura a novos conceitos filosóficos ou científicos. Escores baixos indicam foco cognitivo restrito e aversão a abstrações teóricas."},
+			{"key":"O6","name":"Valores","description":"Disposição para reexaminar valores sociais, políticos e religiosos, rejeitando o dogmatismo e a tradição cega. Escores baixos refletem conservadorismo, respeito pela autoridade tradicional e adesão a doutrinas morais."}
+		]
+	},
+	{
+		"key":"A",
+		"name":"Amabilidade",
+		"description":"Mede a orientação interpessoal no eixo cooperação-versus-antagonismo, incluindo altruísmo, empatia e confiança social.",
+		"facets":[
+			{"key":"A1","name":"Confiança","description":"A disposição para acreditar nas boas intenções, honestidade e segurança de outras pessoas. Escores baixos refletem ceticismo, suspeita e vigilância contra traições."},
+			{"key":"A2","name":"Franqueza","description":"Sinceridade, ingenuidade e transparência na comunicação social, sem recorrer a manipulação ou engano. Escores baixos indicam o uso de persuasão indireta, astúcia ou manipulação."},
+			{"key":"A3","name":"Altruísmo","description":"Preocupação ativa com o bem-estar dos outros, expressa por generosidade, prestatividade e voluntariado. Escores baixos indicam foco estrito no autocuidado e um autocentramento funcional."},
+			{"key":"A4","name":"Complacência","description":"A tendência a inibir a agressão, perdoar ofensas e adiar conflitos para preservar a harmonia social. Escores baixos indicam uma postura competitiva, agressiva, desafiadora e litigiosa."},
+			{"key":"A5","name":"Modéstia","description":"Humildade social, ausência de arrogância e tendência a subestimar a própria superioridade. Escores baixos refletem vaidade, autopromoção e uma atitude de superioridade."},
+			{"key":"A6","name":"Sensibilidade","description":"Uma atitude compassiva em relação às necessidades sociais dos outros, guiada pela empatia na tomada de decisões. Escores baixos indicam julgamento frio e racional e pouca preocupação com o sofrimento alheio."}
+		]
+	},
+	{
+		"key":"C",
+		"name":"Conscienciosidade",
+		"description":"Mede a organização, a persistência, o controle de impulsos orientado a metas e o rigor moral ou executivo.",
+		"facets":[
+			{"key":"C1","name":"Competência","description":"Crença na própria capacidade executiva, eficácia, prudência e habilidade para resolver problemas práticos. Escores baixos indicam baixa autoeficácia percebida e falta de preparo para tarefas."},
+			{"key":"C2","name":"Ordem","description":"Organização pessoal, limpeza, minuciosidade e a necessidade de manter sistemas estruturados e metódicos. Escores baixos indicam desorganização espacial, falta de método e caos operacional."},
+			{"key":"C3","name":"Senso de Dever","description":"Rigor ético e cumprimento estrito de obrigações morais, contratos e compromissos. Escores baixos indicam baixa confiabilidade com prazos, negligência ou conduta ética flexível."},
+			{"key":"C4","name":"Busca por Realização","description":"Aspirações elevadas, orientação para metas ambiciosas, ambição e dedicação notável ao trabalho. Escores baixos refletem falta de ambição, conformismo e baixa motivação de carreira."},
+			{"key":"C5","name":"Autodisciplina","description":"A capacidade de iniciar tarefas e prosseguir com elas até a conclusão, resistindo ao tédio, à fadiga ou à distração. Escores baixos indicam alta procrastinação e abandono de projetos pela metade."},
+			{"key":"C6","name":"Deliberação","description":"A tendência a pensar cuidadosamente antes de agir ou falar, avaliando consequências de curto e longo prazo. Escores baixos indicam impulsividade verbal e comportamental e falta de planejamento prévio."}
+		]
+	}
+]
