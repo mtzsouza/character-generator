@@ -45,6 +45,7 @@ label{display:block;margin:11px 0 0;color:#58676a;font-size:11px;font-weight:750
 .story-card.disclosure-reservado{border-left-color:#b45f36}
 .story-card.disclosure-moderado{border-left-color:#c26a3c}
 .story-card.disclosure-facil{border-left-color:#1f6869}
+#settingsModal{z-index:30}
 .settings-modal{display:flex;flex-direction:column;width:min(460px,calc(100vw - 32px));border:1px solid #9cafaa;border-radius:2px;background:#f7f5ef;box-shadow:10px 10px 0 rgba(6,25,27,.22);padding:20px}
 .settings-body .small{margin:0 0 4px}
 .key-input-row{display:flex;gap:8px;align-items:center;margin-top:6px}
