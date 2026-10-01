@@ -1,8 +1,10 @@
 // Character Population Generator - app.js
 // Runs deferred after DOM parsing
 
+import { buildStoriesPrompt, STORIES_RESPONSE_SCHEMA } from './prompts/storyPrompt.js';
+
 // Trait definitions are loaded from the JSON data files before the app starts.
-const [personalityTraits, functionalTraits, names, occupations, hobbies, sexualOrientations, physicalHealthOptions, hereditaryTendencies, categoricalDefaults] = await Promise.all([
+const [personalityTraits, functionalTraits, names, occupations, hobbies, sexualOrientations, physicalHealthOptions, hereditaryTendencies, communicationStyles, reasonsForFirstVisit, categoricalDefaults] = await Promise.all([
   fetch('data/personality.json').then(response => response.json()),
   fetch('data/functionality.json').then(response => response.json()),
   fetch('data/names.json').then(response => response.json()),
@@ -11,6 +13,8 @@ const [personalityTraits, functionalTraits, names, occupations, hobbies, sexualO
   fetch('data/sexualOrientation.json').then(response => response.json()),
   fetch('data/physicalHealth.json').then(response => response.json()),
   fetch('data/hereditaryPsychopathologyTendencies.json').then(response => response.json()),
+  fetch('data/communicationStyle.json').then(response => response.json()),
+  fetch('data/reasonForFirstVisit.json').then(response => response.json()),
   fetch('data/categoricalProbabilities.json').then(response => response.json())
 ]);
 const personalityFacets = personalityTraits.flatMap(trait => trait.facets.map(facet => facet.key));
@@ -35,6 +39,8 @@ const categoricalTraits = {
   sexualOrientation: sexualOrientations,
   physicalHealth: physicalHealthOptions,
   hereditaryPsychopathologyTendencies: hereditaryTendencies,
+  communicationStyle: communicationStyles,
+  reasonForFirstVisit: reasonsForFirstVisit,
   hobby: hobbies,
   occupation: [...new Set(Object.values(occupations).flat())]
 };
@@ -148,6 +154,8 @@ const categoricalTraitLabels = {
   sexualOrientation: 'Orientação sexual',
   physicalHealth: 'Saúde física',
   hereditaryPsychopathologyTendencies: 'Tendências de psicopatologia hereditária',
+  communicationStyle: 'Estilo de comunicação',
+  reasonForFirstVisit: 'Motivo da primeira consulta',
   hobby: 'Hobby',
   occupation: 'Ocupação'
 };
@@ -247,6 +255,90 @@ function pickName(gender){
   return pickWeighted(nameOptions[key], Object.fromEntries(nameOptions[key].map(name => [name, 1])));
 }
 
+// Character story generation (Gemini) ---------------------------------------
+const GEMINI_API_KEY_STORAGE = 'geminiApiKey';
+const GEMINI_MODEL = 'gemini-3.5-flash-lite';
+const GEMINI_FALLBACK_MODEL = 'gemini-3.6-flash';
+
+function getGeminiApiKey(){
+  try { return localStorage.getItem(GEMINI_API_KEY_STORAGE) || ''; }
+  catch(e){ return ''; }
+}
+function setGeminiApiKey(key){
+  try { localStorage.setItem(GEMINI_API_KEY_STORAGE, key); }
+  catch(e){ /* localStorage unavailable (private mode, etc.) - key just won't persist */ }
+}
+
+const storyCategoryLabels = {
+  infancia: 'Infância',
+  relacionamentos: 'Relacionamentos',
+  cotidiano: 'Cotidiano',
+  motivo_consulta: 'Motivo da consulta',
+  nucleo_oculto: 'Núcleo oculto'
+};
+const disclosureLabels = { facil: 'Fácil', moderado: 'Moderado', reservado: 'Reservado' };
+
+function personalityDomainSummary(p){
+  return personalityTraits.map(trait => {
+    const values = trait.facets.map(facet => p[facet.key]);
+    const avg = values.reduce((a,b)=>a+b,0) / values.length;
+    return `${trait.name}: ${avg.toFixed(1)}`;
+  }).join(', ');
+}
+
+function functionalSummary(f){
+  return functionalTraits.map(trait => `${trait.name}: ${f[trait.key].toFixed(1)}`).join(', ');
+}
+
+function isOverloadError(status, detail){
+  if(status === 429 || status === 503) return true;
+  const text = (detail || '').toLowerCase();
+  return text.includes('overload') || text.includes('high demand') || text.includes('unavailable');
+}
+
+async function callGemini(ch, model){
+  const apiKey = getGeminiApiKey();
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: buildStoriesPrompt(ch, personalityDomainSummary(ch.personality), functionalSummary(ch.functional)) }] }],
+      generationConfig: { responseMimeType: 'application/json', responseSchema: STORIES_RESPONSE_SCHEMA }
+    })
+  });
+  if(!response.ok){
+    let detail = '';
+    try { const errJson = await response.json(); detail = (errJson.error && errJson.error.message) || ''; } catch(e){ /* body wasn't JSON */ }
+    const err = new Error(`Falha ao chamar o Gemini (${response.status})${detail ? ': ' + detail : ''}`);
+    err.status = response.status;
+    err.overloaded = isOverloadError(response.status, detail);
+    throw err;
+  }
+  return response.json();
+}
+
+async function fetchGeneratedStories(ch){
+  const apiKey = getGeminiApiKey();
+  if(!apiKey) throw new Error('Nenhuma chave de API configurada.');
+  let data;
+  try {
+    data = await callGemini(ch, GEMINI_MODEL);
+  } catch(err){
+    if(err.overloaded && GEMINI_FALLBACK_MODEL && GEMINI_FALLBACK_MODEL !== GEMINI_MODEL){
+      data = await callGemini(ch, GEMINI_FALLBACK_MODEL);
+    } else {
+      throw err;
+    }
+  }
+  const parts = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) || [];
+  const text = parts.map(part => part.text || '').join('');
+  if(!text) throw new Error('O Gemini não retornou conteúdo.');
+  let parsed;
+  try { parsed = JSON.parse(text); } catch(e){ throw new Error('Resposta do Gemini não é um JSON válido.'); }
+  if(!parsed || !Array.isArray(parsed.stories) || !parsed.stories.length) throw new Error('Resposta do Gemini sem histórias válidas.');
+  return parsed.stories;
+}
+
 // Neuroticism facets are scored so that higher = more anxiety, hostility, depression,
 // self-consciousness, impulsiveness and vulnerability - the opposite valence of the other
 // four domains, where higher is generally the more adaptive pole (e.g. more trust, more
@@ -274,7 +366,7 @@ function genCharacter(idNum){
   const occupationPool = occupations[ageRange];
   const pAvg = personalityPositiveIndex(p);
   const fAvg = +(Object.values(f).reduce((a,b)=>a+b,0)/functionalVars.length).toFixed(4);
-  return {id, name: pickName(gender), gender, ageRange, occupation: pickWeighted(occupationPool, categoricalProbabilities.occupation), hobby: pickTrait('hobby'), sexualOrientation: pickTrait('sexualOrientation'), physicalHealth: pickTrait('physicalHealth'), hereditaryPsychopathologyTendencies: pickTrait('hereditaryPsychopathologyTendencies'), personality:p, functional:f, personalityAvg:pAvg, functionalAvg:fAvg};
+  return {id, name: pickName(gender), gender, ageRange, occupation: pickWeighted(occupationPool, categoricalProbabilities.occupation), hobby: pickTrait('hobby'), sexualOrientation: pickTrait('sexualOrientation'), physicalHealth: pickTrait('physicalHealth'), hereditaryPsychopathologyTendencies: pickTrait('hereditaryPsychopathologyTendencies'), communicationStyle: pickTrait('communicationStyle'), reasonForFirstVisit: pickTrait('reasonForFirstVisit'), personality:p, functional:f, personalityAvg:pAvg, functionalAvg:fAvg};
 }
 
 function generatePopulation(n){
@@ -376,11 +468,14 @@ function showTooltip(ev, text){
 }
 function hideTooltip(){ tooltip.style.display='none'; }
 
+let currentProfileCharacter = null;
+
 function showProfile(ch){
+  currentProfileCharacter = ch;
   const profileDiv = document.getElementById('profile');
   const profileModal = document.getElementById('profileModal');
   document.getElementById('profileModalTitle').textContent = ch.id;
-  let html = `<div class="profile-summary"><div><span class="profile-label">Nome</span><strong>${ch.name}</strong></div><div><span class="profile-label">Gênero</span><strong>${ch.gender}</strong></div><div><span class="profile-label">Faixa etária</span><strong>${ch.ageRange}</strong></div><div><span class="profile-label">Ocupação</span><strong>${ch.occupation}</strong></div><div><span class="profile-label">Hobby</span><strong>${ch.hobby}</strong></div><div><span class="profile-label">Orientação sexual</span><strong>${ch.sexualOrientation}</strong></div><div><span class="profile-label">Saúde física</span><strong>${ch.physicalHealth}</strong></div><div><span class="profile-label">Tendência de psicopatologia hereditária</span><strong>${ch.hereditaryPsychopathologyTendencies}</strong></div><div><span class="profile-label">Média de personalidade</span><strong>${ch.personalityAvg.toFixed(4)}</strong></div><div><span class="profile-label">Média de funcionalidade</span><strong>${ch.functionalAvg.toFixed(4)}</strong></div></div>`;
+  let html = `<div class="profile-summary"><div><span class="profile-label">Nome</span><strong>${ch.name}</strong></div><div><span class="profile-label">Gênero</span><strong>${ch.gender}</strong></div><div><span class="profile-label">Faixa etária</span><strong>${ch.ageRange}</strong></div><div><span class="profile-label">Ocupação</span><strong>${ch.occupation}</strong></div><div><span class="profile-label">Hobby</span><strong>${ch.hobby}</strong></div><div><span class="profile-label">Orientação sexual</span><strong>${ch.sexualOrientation}</strong></div><div><span class="profile-label">Saúde física</span><strong>${ch.physicalHealth}</strong></div><div><span class="profile-label">Tendência de psicopatologia hereditária</span><strong>${ch.hereditaryPsychopathologyTendencies}</strong></div><div><span class="profile-label">Estilo de comunicação</span><strong>${ch.communicationStyle}</strong></div><div><span class="profile-label">Motivo da primeira consulta</span><strong>${ch.reasonForFirstVisit}</strong></div><div><span class="profile-label">Média de personalidade</span><strong>${ch.personalityAvg.toFixed(4)}</strong></div><div><span class="profile-label">Média de funcionalidade</span><strong>${ch.functionalAvg.toFixed(4)}</strong></div></div>`;
   html += '<section class="profile-section"><h3>Funcionalidade</h3><div class="functional-grid">';
   functionalTraits.forEach(trait => html += `<div class="profile-value"><span>${trait.name}<small>${trait.key}</small></span><strong>${ch.functional[trait.key].toFixed(2)}</strong></div>`);
   html += '</div></section><section class="profile-section"><h3>Personalidade</h3><div class="profile-grid">';
@@ -393,9 +488,54 @@ function showProfile(ch){
     html += '</div>';
   });
   html += '</div></section>';
+  html += '<section class="profile-section stories-section" id="storiesSection"><h3>Histórias</h3>';
+  if(ch.storiesError){
+    html += `<p class="small stories-error">${ch.storiesError}</p><button type="button" class="secondary-button" id="retryStoriesBtn">Tentar novamente</button>`;
+  } else if(ch.storiesLoading){
+    html += '<p class="small stories-loading"><i data-lucide="loader-2" class="spinner" aria-hidden="true"></i> Gerando histórias com Gemini...</p>';
+  } else if(ch.stories && ch.stories.length){
+    html += '<div class="stories-grid">';
+    ch.stories.forEach(story => {
+      const catLabel = storyCategoryLabels[story.category] || story.category || '';
+      const discLabel = disclosureLabels[story.disclosure] || story.disclosure || '';
+      const lockIcon = story.disclosure === 'reservado' ? '<i data-lucide="lock" aria-hidden="true" class="story-lock"></i>' : '';
+      html += `<article class="story-card story-${story.category || ''} disclosure-${story.disclosure || ''}"><header><span class="story-category">${catLabel}</span><span class="story-disclosure">${lockIcon}${discLabel}</span></header><h4>${story.title || ''}</h4><p>${story.summary || ''}</p>${story.relatedTrait ? `<footer>${story.relatedTrait}</footer>` : ''}</article>`;
+    });
+    html += '</div>';
+  } else {
+    html += '<p class="small">Clique no ícone ao lado do ID do personagem para gerar histórias com o Gemini.</p>';
+  }
+  html += '</section>';
   profileDiv.innerHTML = html;
   profileModal.hidden = false;
   document.body.classList.add('modal-open');
+  const retryStoriesBtn = document.getElementById('retryStoriesBtn');
+  if(retryStoriesBtn) retryStoriesBtn.addEventListener('click', () => triggerStoryGeneration(ch));
+  if(window.lucide) window.lucide.createIcons();
+}
+
+function scrollToStoriesSection(){
+  const section = document.getElementById('storiesSection');
+  if(section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function triggerStoryGeneration(ch){
+  const hasExisting = ch.stories && ch.stories.length;
+  if(hasExisting && !confirm('Isso vai substituir as histórias já geradas para este personagem. Continuar?')) return;
+  if(!getGeminiApiKey()){ openSettingsModal(); return; }
+  ch.storiesError = null;
+  ch.storiesLoading = true;
+  const generateStoriesBtn = document.getElementById('generateStoriesBtn');
+  if(generateStoriesBtn) generateStoriesBtn.disabled = true;
+  if(currentProfileCharacter === ch){ showProfile(ch); scrollToStoriesSection(); }
+  try {
+    ch.stories = await fetchGeneratedStories(ch);
+  } catch(err){
+    ch.storiesError = (err && err.message) || 'Erro ao gerar histórias.';
+  }
+  ch.storiesLoading = false;
+  if(generateStoriesBtn) generateStoriesBtn.disabled = false;
+  if(currentProfileCharacter === ch) showProfile(ch);
 }
 
 function renderAll(){
@@ -405,10 +545,10 @@ function renderAll(){
 // CSV Export/Import
 function exportCSV(){
   if(!state.characters.length) return alert('Nenhuma população para exportar');
-  const header = ['ID do Personagem', 'Nome', 'Gênero', 'Faixa etária', 'Ocupação', 'Hobby', 'Orientação sexual', 'Saúde física', 'Tendência de psicopatologia hereditária', ...personalityFacets, ...functionalVars, 'Média de Personalidade','Média de Funcionalidade'];
+  const header = ['ID do Personagem', 'Nome', 'Gênero', 'Faixa etária', 'Ocupação', 'Hobby', 'Orientação sexual', 'Saúde física', 'Tendência de psicopatologia hereditária', 'Estilo de comunicação', 'Motivo da primeira consulta', ...personalityFacets, ...functionalVars, 'Média de Personalidade','Média de Funcionalidade'];
   const rows = [header.join(',')];
   state.characters.forEach(ch=>{
-    const line = [ch.id, ch.name, ch.gender, ch.ageRange, ch.occupation, ch.hobby, ch.sexualOrientation, ch.physicalHealth, ch.hereditaryPsychopathologyTendencies, ...personalityFacets.map(k=>ch.personality[k].toFixed(4)), ...functionalVars.map(k=>ch.functional[k].toFixed(4)), ch.personalityAvg.toFixed(4), ch.functionalAvg.toFixed(4)];
+    const line = [ch.id, ch.name, ch.gender, ch.ageRange, ch.occupation, ch.hobby, ch.sexualOrientation, ch.physicalHealth, ch.hereditaryPsychopathologyTendencies, ch.communicationStyle, ch.reasonForFirstVisit, ...personalityFacets.map(k=>ch.personality[k].toFixed(4)), ...functionalVars.map(k=>ch.functional[k].toFixed(4)), ch.personalityAvg.toFixed(4), ch.functionalAvg.toFixed(4)];
     rows.push(line.join(','));
   });
   const blob = new Blob([rows.join('\n')], {type:'text/csv'});
@@ -452,6 +592,8 @@ function parseCSV(text){
       sexualOrientation: cols[indices['Orientação sexual']] || sexualOrientations[0],
       physicalHealth: cols[indices['Saúde física']] || physicalHealthOptions[0],
       hereditaryPsychopathologyTendencies: cols[indices['Tendência de psicopatologia hereditária']] || hereditaryTendencies[0],
+      communicationStyle: cols[indices['Estilo de comunicação']] || communicationStyles[0],
+      reasonForFirstVisit: cols[indices['Motivo da primeira consulta']] || reasonsForFirstVisit[0],
       personality:p,
       functional:f,
       personalityAvg:pAvg,
@@ -506,6 +648,37 @@ window.addEventListener('keydown', (ev)=>{ if(ev.key === 'Escape' && !profileMod
 categoricalModal.querySelector('.categorical-modal-close').addEventListener('click', closeCategoricalModal);
 categoricalModal.addEventListener('click', (ev)=>{ if(ev.target === categoricalModal) closeCategoricalModal(); });
 window.addEventListener('keydown', (ev)=>{ if(ev.key === 'Escape' && !categoricalModal.hidden) closeCategoricalModal(); });
+
+// Settings modal (Gemini API key)
+const settingsModal = document.getElementById('settingsModal');
+const settingsBtn = document.getElementById('settingsBtn');
+const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+const geminiApiKeyInput = document.getElementById('geminiApiKeyInput');
+const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+const toggleKeyVisibilityBtn = document.getElementById('toggleKeyVisibilityBtn');
+function openSettingsModal(){
+  geminiApiKeyInput.value = getGeminiApiKey();
+  geminiApiKeyInput.type = 'password';
+  settingsModal.hidden = false;
+  document.body.classList.add('modal-open');
+}
+function closeSettingsModal(){
+  settingsModal.hidden = true;
+  document.body.classList.remove('modal-open');
+}
+settingsBtn.addEventListener('click', openSettingsModal);
+closeSettingsBtn.addEventListener('click', closeSettingsModal);
+settingsModal.addEventListener('click', (ev)=>{ if(ev.target === settingsModal) closeSettingsModal(); });
+window.addEventListener('keydown', (ev)=>{ if(ev.key === 'Escape' && !settingsModal.hidden) closeSettingsModal(); });
+saveSettingsBtn.addEventListener('click', ()=>{ setGeminiApiKey(geminiApiKeyInput.value.trim()); closeSettingsModal(); });
+toggleKeyVisibilityBtn.addEventListener('click', ()=>{ geminiApiKeyInput.type = geminiApiKeyInput.type === 'password' ? 'text' : 'password'; });
+
+// Character stories (Gemini)
+document.getElementById('generateStoriesBtn').addEventListener('click', ()=>{
+  if(!currentProfileCharacter) return;
+  scrollToStoriesSection();
+  triggerStoryGeneration(currentProfileCharacter);
+});
 
 // initial render with default population
 generatePopulation(parseInt(document.getElementById('popSize').value));

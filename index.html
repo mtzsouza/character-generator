@@ -4,13 +4,16 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Gerador de População de Personagens</title>
-  <link rel="stylesheet" href="style.css?v=16">
+  <link rel="stylesheet" href="style.css?v=18">
 </head>
 <body>
   <main class="app-shell">
     <header class="page-header">
       <div>
         <h1>Gerador de População de Personagens</h1>
+      </div>
+      <div class="header-actions">
+        <button id="settingsBtn" class="icon-button" type="button" title="Configurações" aria-label="Configurações"><i data-lucide="settings" aria-hidden="true"></i></button>
       </div>
     </header>
 
@@ -52,12 +55,37 @@
     </div>
 
   <div class="tooltip" id="tooltip"></div>
+  <div id="settingsModal" class="modal-backdrop" hidden>
+    <section class="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
+      <div class="modal-header">
+        <div>
+          <p class="modal-kicker">Configurações</p>
+          <h2 id="settingsModalTitle">Chave da API Gemini</h2>
+        </div>
+        <button id="closeSettingsBtn" class="modal-close" type="button" aria-label="Fechar configurações"><i data-lucide="x" aria-hidden="true"></i></button>
+      </div>
+      <div class="settings-body">
+        <p class="small">Cole sua chave da API do Gemini para gerar histórias de personagens. Ela é salva somente neste navegador (localStorage) e nunca é enviada ao repositório no GitHub.</p>
+        <label for="geminiApiKeyInput">Chave da API
+          <div class="key-input-row">
+            <input id="geminiApiKeyInput" type="password" autocomplete="off" spellcheck="false" placeholder="AIza..." />
+            <button id="toggleKeyVisibilityBtn" type="button" class="icon-button" title="Mostrar ou ocultar chave" aria-label="Mostrar ou ocultar chave"><i data-lucide="eye" aria-hidden="true"></i></button>
+          </div>
+        </label>
+        <a class="text-button" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Obter uma chave gratuita no Google AI Studio</a>
+        <button id="saveSettingsBtn" class="primary-button" type="button">Salvar</button>
+      </div>
+    </section>
+  </div>
   <div id="profileModal" class="modal-backdrop" hidden>
     <section class="profile-modal" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle">
       <div class="modal-header">
         <div>
           <p class="modal-kicker">Perfil do personagem</p>
-          <h2 id="profileModalTitle">Personagem selecionado</h2>
+          <div class="profile-title-row">
+            <h2 id="profileModalTitle">Personagem selecionado</h2>
+            <button id="generateStoriesBtn" class="icon-button" type="button" title="Gerar histórias (Gemini)" aria-label="Gerar histórias do personagem"><i data-lucide="book-open" aria-hidden="true"></i></button>
+          </div>
         </div>
         <button id="closeProfileBtn" class="modal-close" type="button" aria-label="Fechar detalhes do personagem"><i data-lucide="x" aria-hidden="true"></i></button>
       </div>
@@ -66,6 +94,6 @@
   </div>
 
   <script src="https://unpkg.com/lucide@0.468.0"></script>
-  <script src="app.js?v=8" type="module"></script>
+  <script src="app.js?v=12" type="module"></script>
 </body>
 </html>

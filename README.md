@@ -10,9 +10,24 @@ A client-side population generator for exploring independent personality and fun
 - Visualizes personality and functionality averages in a scatter plot.
 - Opens complete character profiles from plotted points.
 - Imports and exports populations as CSV files.
-- Selects a Brazilian Portuguese name, age range, occupation, hobby, sexual orientation, physical health, and hereditary psychopathology tendency for every character.
+- Selects a Brazilian Portuguese name, age range, occupation, hobby, sexual orientation, physical health, hereditary psychopathology tendency, communication style, and reason for first visit to the psychologist for every character.
 - Provides default score-distribution probabilities plus adjustable probabilities for every categorical trait.
 - Loads trait names and descriptions from the JSON datasets in `data/`.
+- Generates a set of biographical stories for a character via the Gemini API, from an icon next to the character ID in its profile.
+
+## Character stories (Gemini)
+
+Click the sparkles icon next to a character's ID (in its profile modal) to generate
+~10-14 short biographical story beats for that character with Gemini, spanning
+childhood, relationships, everyday life, the reason they sought a first consultation,
+and more guarded material tied to their hereditary psychopathology tendency.
+
+This requires a Gemini API key, pasted into the settings modal (gear icon in the
+page header). The key is saved only in the browser's `localStorage` and is never
+written to any file in this repository — it is not safe to share this build
+publicly with your own key saved in it, since the browser calls the Gemini API
+directly with that key. Get a free key at
+[Google AI Studio](https://aistudio.google.com/apikey).
 
 ## Run locally
 
@@ -39,6 +54,8 @@ The JSON files are loaded by the browser at runtime, so a local HTTP server is r
 - `data/sexualOrientation.json` - sexual orientation options
 - `data/physicalHealth.json` - physical health options
 - `data/hereditaryPsychopathologyTendencies.json` - hereditary tendency options, including none
+- `data/communicationStyle.json` - communication style options
+- `data/reasonForFirstVisit.json` - reasons for a first visit to the psychologist
 - `data/categoricalProbabilities.json` - default percentage probabilities for categorical traits
 
 Categorical trait controls use direct percentages. Each trait is normalized to exactly 100%; changing one option proportionally adjusts the remaining options. Hobbies default to an even distribution, while occupations default to an even distribution within the selected age range.

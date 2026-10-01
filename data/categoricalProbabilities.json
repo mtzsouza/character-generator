@@ -39,6 +39,32 @@
     "Transtornos relacionados a trauma": 1,
     "Transtornos de personalidade": 1
   },
+  "communicationStyle": {
+    "Formal e reservado": 10,
+    "Informal e espontâneo": 10,
+    "Verborrágico e detalhista": 8,
+    "Monossilábico e evasivo": 7,
+    "Direto e objetivo": 10,
+    "Emocionalmente expressivo": 9,
+    "Racionalizante e intelectualizado": 8,
+    "Uso de humor como defesa": 6,
+    "Desconfiado e cauteloso": 7,
+    "Colaborativo e aberto": 10,
+    "Técnico e com jargão": 5,
+    "Hesitante e cheio de pausas": 10
+  },
+  "reasonForFirstVisit": {
+    "Encaminhado por médico": 20,
+    "Encaminhado pela escola": 8,
+    "Trazido pela família": 15,
+    "Indicação de serviço social": 5,
+    "Determinação judicial": 3,
+    "Indicação de amigo ou conhecido": 12,
+    "Busca espontânea": 20,
+    "Indicação do trabalho": 7,
+    "Encaminhado por outro profissional de saúde": 6,
+    "Indicação do cônjuge ou parceiro": 4
+  },
   "hobbyDefault": "igual",
   "occupationDefault": "igual dentro da faixa etária",
   "sources": {
