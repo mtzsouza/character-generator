@@ -53,6 +53,14 @@
     "Técnico e com jargão": 5,
     "Hesitante e cheio de pausas": 10
   },
+  "communicationRegion": {
+    "Neutro": 70,
+    "Norte": 3,
+    "Nordeste": 8,
+    "Centro-Oeste": 4,
+    "Sudeste": 10,
+    "Sul": 5
+  },
   "reasonForFirstVisit": {
     "Encaminhado por médico": 20,
     "Encaminhado pela escola": 8,

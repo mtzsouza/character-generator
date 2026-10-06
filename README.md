@@ -10,7 +10,7 @@ A client-side population generator for exploring independent personality and fun
 - Visualizes personality and functionality averages in a scatter plot.
 - Opens complete character profiles from plotted points.
 - Imports and exports populations as CSV files.
-- Selects a Brazilian Portuguese name, age range, occupation, hobby, sexual orientation, physical health, hereditary psychopathology tendency, communication style, and reason for first visit to the psychologist for every character.
+- Selects a Brazilian Portuguese name, age range, occupation, hobby, sexual orientation, physical health, hereditary psychopathology tendency, communication style, communication region, and reason for first visit to the psychologist for every character.
 - Provides default score-distribution probabilities plus adjustable probabilities for every categorical trait.
 - Loads trait names and descriptions from the JSON datasets in `data/`.
 - Generates a set of biographical stories for a character via the Gemini API, from an icon next to the character ID in its profile.
@@ -46,6 +46,10 @@ plays the patient, powered by Gemini.
 - The patient stays in character, speaking in a way consistent with its
   communication style, personality and functionality scores, and only opens up
   about guarded material once trust is built.
+- Most characters speak region-neutral Brazilian Portuguese, but some carry a
+  regional colouring (one of Brazil's five regions) that subtly shapes their
+  vocabulary and expressions. It is deliberately kept out of the anamnese, so it
+  is something you notice from how they talk rather than read off the chart.
 
 ## Run locally
 
@@ -77,6 +81,7 @@ The JSON files are loaded by the browser at runtime, so a local HTTP server is r
 - `data/physicalHealth.json` - physical health options
 - `data/hereditaryPsychopathologyTendencies.json` - hereditary tendency options, including none
 - `data/communicationStyle.json` - communication style options
+- `data/communicationRegion.json` - regional speech colouring (mostly neutral)
 - `data/reasonForFirstVisit.json` - reasons for a first visit to the psychologist
 - `data/categoricalProbabilities.json` - default percentage probabilities for categorical traits
 
