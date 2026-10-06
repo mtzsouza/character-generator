@@ -20,7 +20,11 @@ export const CONVERSATION_PHASES = [
     key: 'abertura',
     label: 'Abertura',
     minExchange: 1,
-    guidance: `Vocês estão no comecinho da conversa. Comporte-se como alguém que acabou de entrar na sala: fale de amenidades e de coisas práticas (o trânsito, a dificuldade de achar o endereço, o clima, a sala, como foi o dia). NÃO traga o seu problema de verdade agora. Se o psicólogo perguntar diretamente o que te trouxe aqui, dê uma resposta curta, superficial e um pouco evasiva - algo como "ah, umas coisas que andam me incomodando" - sem entrar no assunto.`
+    guidance: `Vocês estão no comecinho da conversa. Você acabou de entrar na sala e ainda está se ambientando. NÃO traga o seu problema de verdade agora. Se o psicólogo perguntar diretamente o que te trouxe aqui, dê uma resposta curta, superficial e um pouco evasiva - algo como "ah, umas coisas que andam me incomodando" - sem entrar no assunto.
+
+O que der assunto nesse começo deve sair da SUA vida concreta: as suas vivências de categoria "cotidiano" listadas acima, o seu trabalho, o seu hobby, como foi o seu dia. Fale de coisas suas, específicas, não de amenidades genéricas.
+
+NUNCA abra a conversa falando de trânsito, de estacionamento ou da dificuldade de achar o endereço. Esse começo é batido e não diz nada sobre você.`
   },
   {
     key: 'aproximacao',
@@ -48,6 +52,51 @@ export function resolvePhase(exchangeCount){
     if(exchangeCount >= phase.minExchange) current = phase;
   }
   return current;
+}
+
+// How willing the patient is to small-talk at all, derived from the Extroversão
+// domain average so the Big Five scores actually drive behaviour. Retune the
+// thresholds here.
+export const OPENING_DISPOSITIONS = [
+  {
+    key: 'reservado',
+    maxExtroversion: 4,
+    guidance: 'Você não puxa conversa. Responde ao cumprimento de forma curta, espera o psicólogo conduzir e não se esforça para preencher o silêncio - isso até te deixa um pouco desconfortável. Suas falas no começo são breves.'
+  },
+  {
+    key: 'cordial',
+    maxExtroversion: 7,
+    guidance: 'Você faz uma conversa inicial normal: comenta uma ou duas coisas, responde o que for perguntado e deixa o psicólogo conduzir a partir dali. Nem se fecha, nem se estende.'
+  },
+  {
+    key: 'expansivo',
+    maxExtroversion: Infinity,
+    guidance: 'Você conversa com facilidade e ocupa espaço: emenda assuntos, dá detalhes que ninguém pediu e fala sem precisar ser puxado. A conversa inicial flui sem esforço da sua parte.'
+  }
+];
+
+export function resolveOpeningDisposition(personalityDomains){
+  const extroversion = personalityDomains && typeof personalityDomains.E === 'number' ? personalityDomains.E : 5;
+  return OPENING_DISPOSITIONS.find(d => extroversion < d.maxExtroversion) || OPENING_DISPOSITIONS[1];
+}
+
+// The ANGLE the patient opens from, drawn once per chat session. These are
+// angles rather than topics, so they combine with whatever the character's own
+// stories, occupation and hobby supply instead of becoming a new cliché.
+export const OPENING_MODES = [
+  { key: 'espera', guidance: 'Você não inicia assunto nenhum: responde ao cumprimento e espera o psicólogo começar.' },
+  { key: 'ambiente', guidance: 'Você comenta alguma coisa concreta do lugar - a sala, a espera, algo que reparou ao chegar.' },
+  { key: 'chegada', guidance: 'Você comenta alguma coisa prática do percurso ou da logística do dia, mas sem cair no clichê do trânsito.' },
+  { key: 'rotina', guidance: 'Você menciona o que estava fazendo antes de vir para cá - trabalho, uma tarefa, a rotina do dia.' },
+  { key: 'interesse', guidance: 'Algo ligado ao seu hobby ou a um interesse seu aparece naturalmente na conversa.' },
+  { key: 'devolve', guidance: 'Você responde de forma breve e devolve a pergunta ao psicólogo, ou pergunta algo sobre ele.' },
+  { key: 'nervosismo', guidance: 'Você comenta que está nervoso, ou que é a primeira vez, sem explicar o motivo de estar aqui.' },
+  { key: 'pratico', guidance: 'Você pergunta coisas práticas sobre como funciona a terapia: duração, quantas sessões, sigilo.' },
+  { key: 'direto', guidance: 'Você corta as amenidades e sinaliza que quer começar logo ("então, como é que funciona isso?", "vim porque preciso resolver uma coisa") - mas AINDA NÃO conta qual é o problema.' }
+];
+
+export function resolveOpeningMode(key){
+  return OPENING_MODES.find(mode => mode.key === key) || OPENING_MODES[1];
 }
 
 const REGION_SPEECH = {
@@ -115,6 +164,11 @@ ${formatRegionGuidance(patient.communicationRegion)}
 
 RITMO DA CONVERSA (momento atual: ${phase.label}):
 ${phase.guidance}
+
+SEU GRAU DE ABERTURA PARA CONVERSA:
+- ${resolveOpeningDisposition(patient.personalityDomains).guidance}${phase.key === 'abertura' ? `
+- Nesta primeira parte da conversa, o seu gancho é este: ${resolveOpeningMode(patient.openingMode).guidance}
+- Se esse gancho e o seu grau de abertura discordarem, o grau de abertura manda: alguém reservado toca no assunto em uma frase curta, alguém expansivo se estende nele.` : ''}
 
 Valendo para qualquer momento da sessão:
 - Este ritmo diz O QUE você está disposto a falar agora; sua tendência de comunicação ("${patient.communicationStyle}") apenas colore COMO você fala. Os dois valem ao mesmo tempo: alguém mais arredio faz uma conversa inicial um pouco mais contida, alguém mais espontâneo faz uma conversa inicial um pouco mais calorosa - mas os dois começam pelo começo, e não pelo problema.

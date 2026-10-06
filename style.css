@@ -67,6 +67,15 @@ label{display:block;margin:11px 0 0;color:#58676a;font-size:11px;font-weight:750
 .from-psychologist p{color:#173f43}
 .chat-pending p{display:flex;align-items:center;gap:6px;color:#687779}
 .chat-error{margin:0 0 8px;color:#b45f36;font-size:11px;line-height:1.45}
+.checking-notice{display:flex;align-items:center;gap:6px;margin:0 0 8px;color:#687779;font-size:11px;font-style:italic}
+.checking-notice[hidden]{display:none}
+.guardrail-notice{margin:0 0 8px;padding:9px 11px;border:1px solid #d8bca8;border-left:3px solid #b45f36;background:#fbf3ec;flex-shrink:0}
+.guardrail-notice[hidden]{display:none}
+.guardrail-heading{margin:0;color:#7d4a2c;font-size:11px;font-weight:800;letter-spacing:.02em}
+.guardrail-reason{margin:4px 0 0;color:#7d4a2c;font-size:11px;line-height:1.45}
+.guardrail-reason[hidden]{display:none}
+.guardrail-actions{display:flex;gap:8px;margin-top:8px}
+.guardrail-actions:empty{display:none}
 .chat-input-row{display:flex;gap:8px;align-items:flex-end;flex-shrink:0;padding-top:10px;border-top:1px solid #d7dcd4}
 .chat-input-row textarea{flex:1;min-width:0;resize:none;border:1px solid #aebbb6;border-radius:2px;background:#fffdf8;color:#18242b;padding:9px 10px;font-size:12px;line-height:1.45;font-family:inherit}
 .chat-input-row textarea:disabled{background:#f1f0ea;color:#8a9694}

@@ -46,6 +46,15 @@ plays the patient, powered by Gemini.
 - The patient stays in character, speaking in a way consistent with its
   communication style, personality and functionality scores, and only opens up
   about guarded material once trust is built.
+- Every message you send is screened by a preemptive Gemini check before it
+  reaches the patient, covering prompt injection, content offensive to the
+  patient, tone unbecoming of a psychologist, and messages not written in
+  Brazilian Portuguese. Clinically discussing violence, sex, abuse or suicide is
+  explicitly *not* flagged — only messages directed against the patient are.
+  Tone and language blocks offer "enviar mesmo assim"; injection and offensive
+  content are hard blocked. The check fails closed, so a failed check blocks the
+  message rather than letting it through. Blocked messages never enter the
+  conversation history and never advance the session's pacing.
 - Most characters speak region-neutral Brazilian Portuguese, but some carry a
   regional colouring (one of Brazil's five regions) that subtly shapes their
   vocabulary and expressions. It is deliberately kept out of the anamnese, so it
@@ -72,6 +81,7 @@ The JSON files are loaded by the browser at runtime, so a local HTTP server is r
 - `gemini.js` - shared Gemini client (API key storage, model fallback)
 - `prompts/storyPrompt.js` - story-generation prompt, taxonomy and response schema
 - `prompts/chatPrompt.js` - patient persona/system prompt for the chat
+- `prompts/guardrailPrompt.js` - guardrail judge prompt, categories and schema
 - `data/personality.json` - Big Five dimensions and facet metadata
 - `data/functionality.json` - functionality variable metadata
 - `data/names.json` - male and female name components that expand to 1,000 unique full names per gender

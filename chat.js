@@ -3,6 +3,7 @@
 
 import { generateContent, responseText, getGeminiApiKey, setGeminiApiKey } from './gemini.js';
 import { buildPatientSystemPrompt, resolvePhase } from './prompts/chatPrompt.js';
+import { buildGuardrailPrompt, GUARDRAIL_RESPONSE_SCHEMA, GUARDRAIL_NOTICES, OVERRIDABLE_CATEGORIES } from './prompts/guardrailPrompt.js';
 
 const params = new URLSearchParams(window.location.search);
 const sessionId = params.get('session') || '';
@@ -25,6 +26,11 @@ const anamnese = document.getElementById('anamnese');
 const chatMessages = document.getElementById('chatMessages');
 const chatError = document.getElementById('chatError');
 const chatForm = document.getElementById('chatForm');
+const checkingNotice = document.getElementById('checkingNotice');
+const guardrailNotice = document.getElementById('guardrailNotice');
+const guardrailHeading = document.getElementById('guardrailHeading');
+const guardrailReason = document.getElementById('guardrailReason');
+const guardrailActions = document.getElementById('guardrailActions');
 const chatInput = document.getElementById('chatInput');
 const sendBtn = document.getElementById('sendBtn');
 
@@ -94,6 +100,7 @@ function renderAnamnese(){
 // resent on every turn and nothing said earlier in this session is forgotten.
 let history = loadJSON(HISTORY_KEY) || [];
 let pending = false;
+let checking = false;
 
 function renderMessages(){
   chatMessages.innerHTML = '';
@@ -144,9 +151,86 @@ function showChatError(message){
   chatError.hidden = false;
 }
 
-async function sendMessage(text){
+// How many turns of context the guardrail judge sees, so tone and
+// appropriateness are judged against what the patient just said.
+const GUARDRAIL_CONTEXT_TURNS = 6;
+
+function setChecking(value){
+  checking = value;
+  chatInput.disabled = value;
+  sendBtn.disabled = value;
+  checkingNotice.hidden = !value;
+}
+
+function hideGuardrailNotice(){
+  guardrailNotice.hidden = true;
+  guardrailActions.innerHTML = '';
+}
+
+// Blocked messages never reach `history`, so they neither pollute the patient's
+// context nor advance the conversation phase.
+function showGuardrailBlock({ kind, category, reason, text }){
+  chatInput.value = text;
+  guardrailHeading.textContent = kind === 'error'
+    ? 'Não foi possível verificar a mensagem.'
+    : (GUARDRAIL_NOTICES[category] || GUARDRAIL_NOTICES.none);
+  guardrailReason.textContent = kind === 'error'
+    ? 'A verificação falhou, então a mensagem não foi enviada. Tente novamente.'
+    : (reason || '');
+  guardrailReason.hidden = !guardrailReason.textContent;
+  guardrailActions.innerHTML = '';
+  guardrailNotice.hidden = false;
+  // Hard-blocked categories (injection, inappropriate) get the notice but no
+  // action button - there is deliberately no way to send them.
+  const action = kind === 'error'
+    ? { label: 'Tentar novamente', send: ()=> sendMessage(text) }
+    : OVERRIDABLE_CATEGORIES.includes(category)
+      ? { label: 'Enviar mesmo assim', send: ()=> sendMessage(text, { skipGuardrail: true }) }
+      : null;
+  if(!action) return;
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'secondary-button';
+  button.textContent = action.label;
+  button.addEventListener('click', ()=>{ hideGuardrailNotice(); chatInput.value = ''; action.send(); });
+  guardrailActions.appendChild(button);
+}
+
+async function checkGuardrails(text){
+  const data = await generateContent({
+    contents: [{ parts: [{ text: buildGuardrailPrompt(text, history.slice(-GUARDRAIL_CONTEXT_TURNS)) }] }],
+    generationConfig: { responseMimeType: 'application/json', responseSchema: GUARDRAIL_RESPONSE_SCHEMA }
+  });
+  const raw = responseText(data);
+  if(!raw) throw new Error('Verificação sem resposta.');
+  const verdict = JSON.parse(raw);
+  if(typeof verdict.allowed !== 'boolean') throw new Error('Verificação inválida.');
+  return verdict;
+}
+
+async function sendMessage(text, { skipGuardrail = false } = {}){
   if(!getGeminiApiKey()){ openSettingsModal(); return; }
   chatError.hidden = true;
+  hideGuardrailNotice();
+
+  // Fail closed: a failed check blocks the message rather than letting it through.
+  if(!skipGuardrail){
+    setChecking(true);
+    let verdict;
+    try {
+      verdict = await checkGuardrails(text);
+    } catch(err){
+      setChecking(false);
+      showGuardrailBlock({ kind: 'error', text });
+      return;
+    }
+    setChecking(false);
+    if(!verdict.allowed){
+      showGuardrailBlock({ kind: 'violation', category: verdict.category, reason: verdict.reason, text });
+      return;
+    }
+  }
+
   history.push({ role: 'user', text });
   saveJSON(HISTORY_KEY, history);
   setPending(true);
@@ -171,7 +255,7 @@ async function sendMessage(text){
 chatForm.addEventListener('submit', (ev)=>{
   ev.preventDefault();
   const text = chatInput.value.trim();
-  if(!text || pending) return;
+  if(!text || pending || checking) return;
   chatInput.value = '';
   sendMessage(text);
 });

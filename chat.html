@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Sessão com o paciente</title>
-  <link rel="stylesheet" href="style.css?v=20">
+  <link rel="stylesheet" href="style.css?v=21">
 </head>
 <body>
   <main class="app-shell chat-shell">
@@ -35,6 +35,12 @@
         </div>
         <div id="chatMessages" class="chat-messages" aria-live="polite"></div>
         <p id="chatError" class="chat-error" hidden></p>
+        <p id="checkingNotice" class="checking-notice" hidden>Verificando mensagem...</p>
+        <div id="guardrailNotice" class="guardrail-notice" hidden>
+          <p class="guardrail-heading" id="guardrailHeading"></p>
+          <p class="guardrail-reason" id="guardrailReason"></p>
+          <div class="guardrail-actions" id="guardrailActions"></div>
+        </div>
         <form id="chatForm" class="chat-input-row">
           <label class="visually-hidden" for="chatInput">Sua fala como psicólogo</label>
           <textarea id="chatInput" rows="2" placeholder="Escreva sua fala como psicólogo..." autocomplete="off"></textarea>
@@ -68,6 +74,6 @@
   </div>
 
   <script src="https://unpkg.com/lucide@0.468.0"></script>
-  <script src="chat.js?v=7" type="module"></script>
+  <script src="chat.js?v=9" type="module"></script>
 </body>
 </html>

@@ -2,6 +2,7 @@
 // Runs deferred after DOM parsing
 
 import { buildStoriesPrompt, STORIES_RESPONSE_SCHEMA } from './prompts/storyPrompt.js';
+import { OPENING_MODES } from './prompts/chatPrompt.js';
 import { generateContent, responseText, getGeminiApiKey, setGeminiApiKey } from './gemini.js';
 
 // Trait definitions are loaded from the JSON data files before the app starts.
@@ -277,6 +278,15 @@ function personalityDomainSummary(p){
   }).join(', ');
 }
 
+// Numeric domain averages, used by the chat to derive the patient's opening
+// disposition from Extroversão.
+function personalityDomainScores(p){
+  return Object.fromEntries(personalityTraits.map(trait => {
+    const values = trait.facets.map(facet => p[facet.key]);
+    return [trait.key, +(values.reduce((a,b)=>a+b,0) / values.length).toFixed(2)];
+  }));
+}
+
 function functionalSummary(f){
   return functionalTraits.map(trait => `${trait.name}: ${f[trait.key].toFixed(1)}`).join(', ');
 }
@@ -314,7 +324,10 @@ function openChatTab(ch){
     communicationRegion: ch.communicationRegion,
     reasonForFirstVisit: ch.reasonForFirstVisit,
     personalitySummary: personalityDomainSummary(ch.personality),
+    personalityDomains: personalityDomainScores(ch.personality),
     functionalSummary: functionalSummary(ch.functional),
+    // Drawn per session, so reopening the same patient gives a different opening.
+    openingMode: OPENING_MODES[Math.floor(Math.random() * OPENING_MODES.length)].key,
     stories: ch.stories
   };
   try {
