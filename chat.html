@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sessão com o paciente</title>
+  <link rel="stylesheet" href="style.css?v=20">
+</head>
+<body>
+  <main class="app-shell chat-shell">
+    <header class="page-header">
+      <div>
+        <p class="modal-kicker">Sessão de psicologia</p>
+        <h1 id="patientHeading">Carregando paciente...</h1>
+      </div>
+      <div class="header-actions">
+        <button id="settingsBtn" class="icon-button" type="button" title="Configurações" aria-label="Configurações"><i data-lucide="settings" aria-hidden="true"></i></button>
+      </div>
+    </header>
+
+    <p id="sessionError" class="session-error" hidden></p>
+
+    <div class="chat-workspace" id="chatWorkspace" hidden>
+      <section class="panel anamnese-panel">
+        <div class="control-heading">
+          <h2>Anamnese</h2>
+        </div>
+        <div id="anamnese" class="anamnese"></div>
+      </section>
+
+      <section class="panel chat-panel">
+        <div class="control-heading">
+          <h2>Conversa</h2>
+          <span class="control-note">Você conduz como psicólogo</span>
+        </div>
+        <div id="chatMessages" class="chat-messages" aria-live="polite"></div>
+        <p id="chatError" class="chat-error" hidden></p>
+        <form id="chatForm" class="chat-input-row">
+          <label class="visually-hidden" for="chatInput">Sua fala como psicólogo</label>
+          <textarea id="chatInput" rows="2" placeholder="Escreva sua fala como psicólogo..." autocomplete="off"></textarea>
+          <button id="sendBtn" class="icon-button" type="submit" title="Enviar" aria-label="Enviar mensagem"><i data-lucide="send" aria-hidden="true"></i></button>
+        </form>
+      </section>
+    </div>
+  </main>
+
+  <div id="settingsModal" class="modal-backdrop" hidden>
+    <section class="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
+      <div class="modal-header">
+        <div>
+          <p class="modal-kicker">Configurações</p>
+          <h2 id="settingsModalTitle">Chave da API Gemini</h2>
+        </div>
+        <button id="closeSettingsBtn" class="modal-close" type="button" aria-label="Fechar configurações"><i data-lucide="x" aria-hidden="true"></i></button>
+      </div>
+      <div class="settings-body">
+        <p class="small">Cole sua chave da API do Gemini para conversar com o paciente. Ela é salva somente neste navegador (localStorage) e nunca é enviada ao repositório no GitHub.</p>
+        <label for="geminiApiKeyInput">Chave da API
+          <div class="key-input-row">
+            <input id="geminiApiKeyInput" type="password" autocomplete="off" spellcheck="false" placeholder="AIza..." />
+            <button id="toggleKeyVisibilityBtn" type="button" class="icon-button" title="Mostrar ou ocultar chave" aria-label="Mostrar ou ocultar chave"><i data-lucide="eye" aria-hidden="true"></i></button>
+          </div>
+        </label>
+        <a class="text-button" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Obter uma chave gratuita no Google AI Studio</a>
+        <button id="saveSettingsBtn" class="primary-button" type="button">Salvar</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="https://unpkg.com/lucide@0.468.0"></script>
+  <script src="chat.js?v=6" type="module"></script>
+</body>
+</html>

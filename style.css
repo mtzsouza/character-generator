@@ -46,6 +46,31 @@ label{display:block;margin:11px 0 0;color:#58676a;font-size:11px;font-weight:750
 .story-card.disclosure-moderado{border-left-color:#c26a3c}
 .story-card.disclosure-facil{border-left-color:#1f6869}
 #settingsModal{z-index:30}
+.icon-button:disabled{opacity:.4;cursor:not-allowed;background:#f1f0ea}
+.icon-button:disabled:hover{background:#f1f0ea}
+.session-error{max-width:640px;margin:24px 0;padding:14px 16px;border:1px solid #d8bca8;border-left:3px solid #b45f36;background:#fbf3ec;color:#7d4a2c;font-size:12px;line-height:1.5}
+.chat-shell{display:flex;flex-direction:column;height:100vh}
+.chat-workspace{display:grid;grid-template-columns:minmax(230px,28%) minmax(0,1fr);gap:18px;align-items:stretch;flex:1;min-height:0}
+.anamnese-panel{overflow-y:auto}
+.anamnese{display:flex;flex-direction:column;gap:7px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11px}
+.anamnese-row{display:flex;flex-direction:column;gap:2px;border-left:3px solid #c26a3c;background:#edf2ed;padding:7px 9px}
+.anamnese-row strong{color:#173f43;font-size:12px;overflow-wrap:anywhere}
+.chat-panel{display:flex;flex-direction:column;min-height:0}
+.chat-messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:4px 6px 10px 0;min-height:0}
+.chat-empty{margin:auto;max-width:280px;text-align:center}
+.chat-message{display:flex;flex-direction:column;gap:3px;max-width:78%;padding:8px 11px;border:1px solid #d7dcd4;border-radius:2px}
+.chat-message p{margin:0;font-size:12px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+.chat-author{font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#687779}
+.from-patient{align-self:flex-start;background:#fbfaf5;border-left:3px solid #1f6869}
+.from-patient p{color:#2c4446}
+.from-psychologist{align-self:flex-end;background:#e4eee9;border-right:3px solid #c26a3c}
+.from-psychologist p{color:#173f43}
+.chat-pending p{display:flex;align-items:center;gap:6px;color:#687779}
+.chat-error{margin:0 0 8px;color:#b45f36;font-size:11px;line-height:1.45}
+.chat-input-row{display:flex;gap:8px;align-items:flex-end;flex-shrink:0;padding-top:10px;border-top:1px solid #d7dcd4}
+.chat-input-row textarea{flex:1;min-width:0;resize:none;border:1px solid #aebbb6;border-radius:2px;background:#fffdf8;color:#18242b;padding:9px 10px;font-size:12px;line-height:1.45;font-family:inherit}
+.chat-input-row textarea:disabled{background:#f1f0ea;color:#8a9694}
+.chat-input-row .icon-button{flex:none}
 .settings-modal{display:flex;flex-direction:column;width:min(460px,calc(100vw - 32px));border:1px solid #9cafaa;border-radius:2px;background:#f7f5ef;box-shadow:10px 10px 0 rgba(6,25,27,.22);padding:20px}
 .settings-body .small{margin:0 0 4px}
 .key-input-row{display:flex;gap:8px;align-items:center;margin-top:6px}
@@ -73,6 +98,11 @@ label{display:block;margin:11px 0 0;color:#58676a;font-size:11px;font-weight:750
 .profile-grid,.functional-grid,.stories-grid{grid-template-columns:1fr}
 .settings-modal{padding:16px}
 .key-input-row{flex-wrap:wrap}
+.chat-shell{height:auto;min-height:100vh}
+.chat-workspace{grid-template-columns:1fr}
+.anamnese-panel{max-height:none}
+.chat-panel{min-height:70vh}
+.chat-message{max-width:92%}
 .categorical-modal{padding:16px}
 .categorical-modal-header{margin-bottom:12px;padding-bottom:10px}
 input[type=range]{height:28px}

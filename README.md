@@ -29,6 +29,24 @@ publicly with your own key saved in it, since the browser calls the Gemini API
 directly with that key. Get a free key at
 [Google AI Studio](https://aistudio.google.com/apikey).
 
+## Patient chat
+
+Once a character has stories, the speech-bubble icon next to its ID opens a
+separate tab (`chat.html`) where you play the psychologist and the character
+plays the patient, powered by Gemini.
+
+- The chat tab is isolated: it receives only the selected patient's data, handed
+  over through a one-off `chatSession:<id>` entry in `localStorage`.
+- The side panel shows the patient's **anamnese** — intake-level information
+  only. Personality scores, functionality scores and the generated stories stay
+  hidden, since uncovering them through the conversation is the point.
+- Each click of the chat icon starts a brand new, independent conversation.
+  Within a conversation the full history is resent on every turn, so the patient
+  remembers everything said in that session (and survives a page reload).
+- The patient stays in character, speaking in a way consistent with its
+  communication style, personality and functionality scores, and only opens up
+  about guarded material once trust is built.
+
 ## Run locally
 
 Serve the folder with any local static file server, then open `index.html` in a browser. For example:
@@ -44,8 +62,12 @@ The JSON files are loaded by the browser at runtime, so a local HTTP server is r
 ## Project files
 
 - `index.html` - application markup
-- `style.css` - interface styling
+- `style.css` - interface styling (shared by both pages)
 - `app.js` - population generation and visualization logic
+- `chat.html` / `chat.js` - the isolated patient chat tab
+- `gemini.js` - shared Gemini client (API key storage, model fallback)
+- `prompts/storyPrompt.js` - story-generation prompt, taxonomy and response schema
+- `prompts/chatPrompt.js` - patient persona/system prompt for the chat
 - `data/personality.json` - Big Five dimensions and facet metadata
 - `data/functionality.json` - functionality variable metadata
 - `data/names.json` - male and female name components that expand to 1,000 unique full names per gender

@@ -2,6 +2,7 @@
 // Runs deferred after DOM parsing
 
 import { buildStoriesPrompt, STORIES_RESPONSE_SCHEMA } from './prompts/storyPrompt.js';
+import { generateContent, responseText, getGeminiApiKey, setGeminiApiKey } from './gemini.js';
 
 // Trait definitions are loaded from the JSON data files before the app starts.
 const [personalityTraits, functionalTraits, names, occupations, hobbies, sexualOrientations, physicalHealthOptions, hereditaryTendencies, communicationStyles, reasonsForFirstVisit, categoricalDefaults] = await Promise.all([
@@ -256,19 +257,6 @@ function pickName(gender){
 }
 
 // Character story generation (Gemini) ---------------------------------------
-const GEMINI_API_KEY_STORAGE = 'geminiApiKey';
-const GEMINI_MODEL = 'gemini-3.5-flash-lite';
-const GEMINI_FALLBACK_MODEL = 'gemini-3.6-flash';
-
-function getGeminiApiKey(){
-  try { return localStorage.getItem(GEMINI_API_KEY_STORAGE) || ''; }
-  catch(e){ return ''; }
-}
-function setGeminiApiKey(key){
-  try { localStorage.setItem(GEMINI_API_KEY_STORAGE, key); }
-  catch(e){ /* localStorage unavailable (private mode, etc.) - key just won't persist */ }
-}
-
 const storyCategoryLabels = {
   infancia: 'Infância',
   relacionamentos: 'Relacionamentos',
@@ -290,53 +278,48 @@ function functionalSummary(f){
   return functionalTraits.map(trait => `${trait.name}: ${f[trait.key].toFixed(1)}`).join(', ');
 }
 
-function isOverloadError(status, detail){
-  if(status === 429 || status === 503) return true;
-  const text = (detail || '').toLowerCase();
-  return text.includes('overload') || text.includes('high demand') || text.includes('unavailable');
-}
-
-async function callGemini(ch, model){
-  const apiKey = getGeminiApiKey();
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: buildStoriesPrompt(ch, personalityDomainSummary(ch.personality), functionalSummary(ch.functional)) }] }],
-      generationConfig: { responseMimeType: 'application/json', responseSchema: STORIES_RESPONSE_SCHEMA }
-    })
-  });
-  if(!response.ok){
-    let detail = '';
-    try { const errJson = await response.json(); detail = (errJson.error && errJson.error.message) || ''; } catch(e){ /* body wasn't JSON */ }
-    const err = new Error(`Falha ao chamar o Gemini (${response.status})${detail ? ': ' + detail : ''}`);
-    err.status = response.status;
-    err.overloaded = isOverloadError(response.status, detail);
-    throw err;
-  }
-  return response.json();
-}
-
 async function fetchGeneratedStories(ch){
-  const apiKey = getGeminiApiKey();
-  if(!apiKey) throw new Error('Nenhuma chave de API configurada.');
-  let data;
-  try {
-    data = await callGemini(ch, GEMINI_MODEL);
-  } catch(err){
-    if(err.overloaded && GEMINI_FALLBACK_MODEL && GEMINI_FALLBACK_MODEL !== GEMINI_MODEL){
-      data = await callGemini(ch, GEMINI_FALLBACK_MODEL);
-    } else {
-      throw err;
-    }
-  }
-  const parts = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) || [];
-  const text = parts.map(part => part.text || '').join('');
+  const data = await generateContent({
+    contents: [{ parts: [{ text: buildStoriesPrompt(ch, personalityDomainSummary(ch.personality), functionalSummary(ch.functional)) }] }],
+    generationConfig: { responseMimeType: 'application/json', responseSchema: STORIES_RESPONSE_SCHEMA }
+  });
+  const text = responseText(data);
   if(!text) throw new Error('O Gemini não retornou conteúdo.');
   let parsed;
   try { parsed = JSON.parse(text); } catch(e){ throw new Error('Resposta do Gemini não é um JSON válido.'); }
   if(!parsed || !Array.isArray(parsed.stories) || !parsed.stories.length) throw new Error('Resposta do Gemini sem histórias válidas.');
   return parsed.stories;
+}
+
+// Patient chat handoff ------------------------------------------------------
+// The chat runs in its own tab and must never see the rest of the population,
+// so only this one character's data is written to the session entry it reads.
+function openChatTab(ch){
+  if(!ch.stories || !ch.stories.length) return;
+  const sessionId = `${ch.id}-${Date.now()}`;
+  const patient = {
+    id: ch.id,
+    name: ch.name,
+    gender: ch.gender,
+    ageRange: ch.ageRange,
+    occupation: ch.occupation,
+    hobby: ch.hobby,
+    sexualOrientation: ch.sexualOrientation,
+    physicalHealth: ch.physicalHealth,
+    hereditaryPsychopathologyTendencies: ch.hereditaryPsychopathologyTendencies,
+    communicationStyle: ch.communicationStyle,
+    reasonForFirstVisit: ch.reasonForFirstVisit,
+    personalitySummary: personalityDomainSummary(ch.personality),
+    functionalSummary: functionalSummary(ch.functional),
+    stories: ch.stories
+  };
+  try {
+    localStorage.setItem(`chatSession:${sessionId}`, JSON.stringify(patient));
+  } catch(e){
+    alert('Não foi possível abrir a conversa: armazenamento do navegador indisponível.');
+    return;
+  }
+  window.open(`chat.html?session=${encodeURIComponent(sessionId)}`, '_blank', 'noopener');
 }
 
 // Neuroticism facets are scored so that higher = more anxiety, hostility, depression,
@@ -511,7 +494,17 @@ function showProfile(ch){
   document.body.classList.add('modal-open');
   const retryStoriesBtn = document.getElementById('retryStoriesBtn');
   if(retryStoriesBtn) retryStoriesBtn.addEventListener('click', () => triggerStoryGeneration(ch));
+  updateChatButton(ch);
   if(window.lucide) window.lucide.createIcons();
+}
+
+// Chatting is only possible once the character has stories to draw on.
+function updateChatButton(ch){
+  const openChatBtn = document.getElementById('openChatBtn');
+  if(!openChatBtn) return;
+  const ready = !!(ch.stories && ch.stories.length);
+  openChatBtn.disabled = !ready;
+  openChatBtn.title = ready ? 'Conversar com o personagem' : 'Gere as histórias do personagem para liberar a conversa';
 }
 
 function scrollToStoriesSection(){
@@ -678,6 +671,11 @@ document.getElementById('generateStoriesBtn').addEventListener('click', ()=>{
   if(!currentProfileCharacter) return;
   scrollToStoriesSection();
   triggerStoryGeneration(currentProfileCharacter);
+});
+
+document.getElementById('openChatBtn').addEventListener('click', ()=>{
+  if(!currentProfileCharacter) return;
+  openChatTab(currentProfileCharacter);
 });
 
 // initial render with default population
