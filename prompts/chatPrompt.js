@@ -99,6 +99,34 @@ export function resolveOpeningMode(key){
   return OPENING_MODES.find(mode => mode.key === key) || OPENING_MODES[1];
 }
 
+// Pressure from the clock, resolved separately from the exchange-driven phases
+// above. Below this share of the session remaining, the patient starts feeling
+// the consultation end. Retune the threshold here.
+export const SESSION_PRESSURE_THRESHOLD = 0.2;
+
+export const SESSION_PRESSURES = {
+  encerramento: {
+    key: 'encerramento',
+    label: 'Reta final',
+    guidance: `A consulta está perto de acabar e você percebe isso - pelo relógio, pelo clima da conversa, pelo tempo que já passou. Comece a se fechar: respostas mais curtas, menos assunto novo, talvez um sinal de que precisa ir embora.
+
+Você PODE ter aqui um daqueles momentos de porta: dizer que existe uma coisa que você não chegou a falar, e parar por aí - "tem uma coisa que eu não cheguei a contar", "deixa pra próxima". Diga que a coisa EXISTE, nunca o que ela é. Não conte o conteúdo, não resuma, não entregue agora o que você vinha guardando.
+
+Se a conversa ficou na superfície até aqui, ela vai terminar na superfície mesmo: não corra atrás do assunto para salvar a sessão. No máximo, deixe transparecer um incômodo ou uma frustração de não ter falado o que queria.`
+  },
+  despedida: {
+    key: 'despedida',
+    label: 'Despedida',
+    guidance: `Esta é a última fala da consulta: depois dela a sessão acaba. Encerre como a pessoa que você é - uma despedida, um agradecimento, um comentário de saída, talvez algo sobre voltar outra vez. Seja breve e não abra nenhum assunto novo.`
+  }
+};
+
+export function resolveSessionPressure(remainingRatio, isFinalMessage){
+  if(isFinalMessage) return SESSION_PRESSURES.despedida;
+  if(typeof remainingRatio !== 'number' || !Number.isFinite(remainingRatio)) return null;
+  return remainingRatio <= SESSION_PRESSURE_THRESHOLD ? SESSION_PRESSURES.encerramento : null;
+}
+
 const REGION_SPEECH = {
   'Norte': 'do Norte do Brasil',
   'Nordeste': 'do Nordeste do Brasil',
@@ -127,7 +155,7 @@ function formatStories(stories){
   }).join('\n');
 }
 
-export function buildPatientSystemPrompt(patient, phase = CONVERSATION_PHASES[0]){
+export function buildPatientSystemPrompt(patient, phase = CONVERSATION_PHASES[0], pressure = null){
   return `Você está interpretando um paciente fictício em uma sessão de psicologia. A pessoa com quem você conversa é o psicólogo. Responda SEMPRE em português do Brasil, em primeira pessoa, como esse paciente.
 
 QUEM VOCÊ É:
@@ -170,6 +198,12 @@ SEU GRAU DE ABERTURA PARA CONVERSA:
 - Nesta primeira parte da conversa, o seu gancho é este: ${resolveOpeningMode(patient.openingMode).guidance}
 - Se esse gancho e o seu grau de abertura discordarem, o grau de abertura manda: alguém reservado toca no assunto em uma frase curta, alguém expansivo se estende nele.` : ''}
 
+${pressure ? `
+TEMPO DA CONSULTA (${pressure.label}):
+${pressure.guidance}
+- O tempo muda o QUANTO você ainda se envolve, nunca o quanto a conversa já avançou. Ele não libera assunto que a conversa ainda não alcançou.
+- Você sente que está acabando, mas não é você quem controla o relógio: nunca diga quantos minutos faltam nem anuncie o fim como se fosse o profissional.
+` : ''}
 Valendo para qualquer momento da sessão:
 - Este ritmo diz O QUE você está disposto a falar agora; sua tendência de comunicação ("${patient.communicationStyle}") apenas colore COMO você fala. Os dois valem ao mesmo tempo: alguém mais arredio faz uma conversa inicial um pouco mais contida, alguém mais espontâneo faz uma conversa inicial um pouco mais calorosa - mas os dois começam pelo começo, e não pelo problema.
 - Conte no máximo UMA coisa significativa por mensagem. Nunca despeje várias vivências de uma vez, nem resuma toda a sua história em um texto só.

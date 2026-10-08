@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Gerador de População de Personagens</title>
-  <link rel="stylesheet" href="style.css?v=21">
+  <link rel="stylesheet" href="style.css?v=26">
 </head>
 <body>
   <main class="app-shell">
@@ -58,22 +58,48 @@
   <div id="settingsModal" class="modal-backdrop" hidden>
     <section class="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
       <div class="modal-header">
-        <div>
-          <p class="modal-kicker">Configurações</p>
-          <h2 id="settingsModalTitle">Chave da API Gemini</h2>
+        <div class="settings-heading">
+          <button id="settingsBackBtn" class="icon-button settings-back" type="button" title="Voltar" aria-label="Voltar às configurações" hidden><i data-lucide="arrow-left" aria-hidden="true"></i></button>
+          <div>
+            <p class="modal-kicker">Configurações</p>
+            <h2 id="settingsModalTitle">Configurações</h2>
+          </div>
         </div>
         <button id="closeSettingsBtn" class="modal-close" type="button" aria-label="Fechar configurações"><i data-lucide="x" aria-hidden="true"></i></button>
       </div>
       <div class="settings-body">
-        <p class="small">Cole sua chave da API do Gemini para gerar histórias de personagens. Ela é salva somente neste navegador (localStorage) e nunca é enviada ao repositório no GitHub.</p>
-        <label for="geminiApiKeyInput">Chave da API
-          <div class="key-input-row">
-            <input id="geminiApiKeyInput" type="password" autocomplete="off" spellcheck="false" placeholder="AIza..." />
-            <button id="toggleKeyVisibilityBtn" type="button" class="icon-button" title="Mostrar ou ocultar chave" aria-label="Mostrar ou ocultar chave"><i data-lucide="eye" aria-hidden="true"></i></button>
-          </div>
-        </label>
-        <a class="text-button" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Obter uma chave gratuita no Google AI Studio</a>
-        <button id="saveSettingsBtn" class="primary-button" type="button">Salvar</button>
+        <div id="settingsMenu" class="settings-menu">
+          <button class="settings-menu-item" type="button" data-panel="apiKey">
+            <i data-lucide="key-round" aria-hidden="true"></i>
+            <span class="settings-menu-text"><strong>Chave da API</strong><small>Chave do Gemini usada pelo gerador e pela consulta</small></span>
+            <i data-lucide="chevron-right" aria-hidden="true"></i>
+          </button>
+          <button class="settings-menu-item" type="button" data-panel="duration">
+            <i data-lucide="timer" aria-hidden="true"></i>
+            <span class="settings-menu-text"><strong>Duração da sessão</strong><small>Tempo de cada consulta</small></span>
+            <i data-lucide="chevron-right" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        <div id="settingsPanel-apiKey" class="settings-panel" hidden>
+          <p class="small">Cole sua chave da API do Gemini. Ela é salva somente neste navegador (localStorage) e nunca é enviada ao repositório no GitHub.</p>
+          <label for="geminiApiKeyInput">Chave da API
+            <div class="key-input-row">
+              <input id="geminiApiKeyInput" type="password" autocomplete="off" spellcheck="false" placeholder="AIza..." />
+              <button id="toggleKeyVisibilityBtn" type="button" class="icon-button" title="Mostrar ou ocultar chave" aria-label="Mostrar ou ocultar chave"><i data-lucide="eye" aria-hidden="true"></i></button>
+            </div>
+          </label>
+          <a class="text-button" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Obter uma chave gratuita no Google AI Studio</a>
+          <button id="saveApiKeyBtn" class="primary-button" type="button">Salvar</button>
+        </div>
+
+        <div id="settingsPanel-duration" class="settings-panel" hidden>
+          <p class="small">Quanto tempo dura cada consulta. O cronômetro é iniciado manualmente dentro da sessão, e quando ele zera não é mais possível enviar mensagens.</p>
+          <label for="sessionMinutesInput">Duração (minutos)
+            <input id="sessionMinutesInput" type="number" min="1" max="180" step="1" />
+          </label>
+          <button id="saveDurationBtn" class="primary-button" type="button">Salvar</button>
+        </div>
       </div>
     </section>
   </div>
@@ -95,6 +121,6 @@
   </div>
 
   <script src="https://unpkg.com/lucide@0.468.0"></script>
-  <script src="app.js?v=14" type="module"></script>
+  <script src="app.js?v=16" type="module"></script>
 </body>
 </html>

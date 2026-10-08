@@ -3,6 +3,7 @@
 
 import { buildStoriesPrompt, STORIES_RESPONSE_SCHEMA } from './prompts/storyPrompt.js';
 import { OPENING_MODES } from './prompts/chatPrompt.js';
+import { getSessionMinutes, setSessionMinutes, clampSessionMinutes } from './settings.js';
 import { generateContent, responseText, getGeminiApiKey, setGeminiApiKey } from './gemini.js';
 
 // Trait definitions are loaded from the JSON data files before the app starts.
@@ -309,6 +310,8 @@ async function fetchGeneratedStories(ch){
 // so only this one character's data is written to the session entry it reads.
 function openChatTab(ch){
   if(!ch.stories || !ch.stories.length) return;
+  // The chat tab has no settings UI, so the key must be configured here first.
+  if(!getGeminiApiKey()){ openSettingsModal('apiKey'); return; }
   const sessionId = `${ch.id}-${Date.now()}`;
   const patient = {
     id: ch.id,
@@ -328,6 +331,7 @@ function openChatTab(ch){
     functionalSummary: functionalSummary(ch.functional),
     // Drawn per session, so reopening the same patient gives a different opening.
     openingMode: OPENING_MODES[Math.floor(Math.random() * OPENING_MODES.length)].key,
+    durationMinutes: getSessionMinutes(),
     stories: ch.stories
   };
   try {
@@ -532,7 +536,7 @@ function scrollToStoriesSection(){
 async function triggerStoryGeneration(ch){
   const hasExisting = ch.stories && ch.stories.length;
   if(hasExisting && !confirm('Isso vai substituir as histórias já geradas para este personagem. Continuar?')) return;
-  if(!getGeminiApiKey()){ openSettingsModal(); return; }
+  if(!getGeminiApiKey()){ openSettingsModal('apiKey'); return; }
   ch.storiesError = null;
   ch.storiesLoading = true;
   const generateStoriesBtn = document.getElementById('generateStoriesBtn');
@@ -660,16 +664,33 @@ categoricalModal.querySelector('.categorical-modal-close').addEventListener('cli
 categoricalModal.addEventListener('click', (ev)=>{ if(ev.target === categoricalModal) closeCategoricalModal(); });
 window.addEventListener('keydown', (ev)=>{ if(ev.key === 'Escape' && !categoricalModal.hidden) closeCategoricalModal(); });
 
-// Settings modal (Gemini API key)
+// Settings modal - a menu that swaps its body for the chosen sub-panel.
 const settingsModal = document.getElementById('settingsModal');
-const settingsBtn = document.getElementById('settingsBtn');
-const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+const settingsMenu = document.getElementById('settingsMenu');
+const settingsBackBtn = document.getElementById('settingsBackBtn');
+const settingsModalTitle = document.getElementById('settingsModalTitle');
 const geminiApiKeyInput = document.getElementById('geminiApiKeyInput');
-const saveSettingsBtn = document.getElementById('saveSettingsBtn');
-const toggleKeyVisibilityBtn = document.getElementById('toggleKeyVisibilityBtn');
-function openSettingsModal(){
-  geminiApiKeyInput.value = getGeminiApiKey();
-  geminiApiKeyInput.type = 'password';
+const sessionMinutesInput = document.getElementById('sessionMinutesInput');
+
+const SETTINGS_PANELS = {
+  apiKey: { title: 'Chave da API Gemini', onOpen(){ geminiApiKeyInput.value = getGeminiApiKey(); geminiApiKeyInput.type = 'password'; } },
+  duration: { title: 'Duração da sessão', onOpen(){ sessionMinutesInput.value = getSessionMinutes(); } }
+};
+
+function showSettingsPanel(name){
+  Object.keys(SETTINGS_PANELS).forEach(key => {
+    document.getElementById(`settingsPanel-${key}`).hidden = key !== name;
+  });
+  const panel = SETTINGS_PANELS[name];
+  settingsMenu.hidden = !!panel;
+  settingsBackBtn.hidden = !panel;
+  settingsModalTitle.textContent = panel ? panel.title : 'Configurações';
+  if(panel) panel.onOpen();
+  if(window.lucide) window.lucide.createIcons();
+}
+
+function openSettingsModal(panel = null){
+  showSettingsPanel(panel);
   settingsModal.hidden = false;
   document.body.classList.add('modal-open');
 }
@@ -677,12 +698,22 @@ function closeSettingsModal(){
   settingsModal.hidden = true;
   document.body.classList.remove('modal-open');
 }
-settingsBtn.addEventListener('click', openSettingsModal);
-closeSettingsBtn.addEventListener('click', closeSettingsModal);
+
+document.getElementById('settingsBtn').addEventListener('click', ()=> openSettingsModal());
+document.getElementById('closeSettingsBtn').addEventListener('click', closeSettingsModal);
+settingsBackBtn.addEventListener('click', ()=> showSettingsPanel(null));
+settingsMenu.querySelectorAll('.settings-menu-item').forEach(item => {
+  item.addEventListener('click', ()=> showSettingsPanel(item.dataset.panel));
+});
 settingsModal.addEventListener('click', (ev)=>{ if(ev.target === settingsModal) closeSettingsModal(); });
-window.addEventListener('keydown', (ev)=>{ if(ev.key === 'Escape' && !settingsModal.hidden) closeSettingsModal(); });
-saveSettingsBtn.addEventListener('click', ()=>{ setGeminiApiKey(geminiApiKeyInput.value.trim()); closeSettingsModal(); });
-toggleKeyVisibilityBtn.addEventListener('click', ()=>{ geminiApiKeyInput.type = geminiApiKeyInput.type === 'password' ? 'text' : 'password'; });
+window.addEventListener('keydown', (ev)=>{
+  if(ev.key !== 'Escape' || settingsModal.hidden) return;
+  // Escape steps back to the menu first, then closes.
+  if(settingsBackBtn.hidden) closeSettingsModal(); else showSettingsPanel(null);
+});
+document.getElementById('saveApiKeyBtn').addEventListener('click', ()=>{ setGeminiApiKey(geminiApiKeyInput.value.trim()); closeSettingsModal(); });
+document.getElementById('saveDurationBtn').addEventListener('click', ()=>{ setSessionMinutes(clampSessionMinutes(sessionMinutesInput.value)); closeSettingsModal(); });
+document.getElementById('toggleKeyVisibilityBtn').addEventListener('click', ()=>{ geminiApiKeyInput.type = geminiApiKeyInput.type === 'password' ? 'text' : 'password'; });
 
 // Character stories (Gemini)
 document.getElementById('generateStoriesBtn').addEventListener('click', ()=>{

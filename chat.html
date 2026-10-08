@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Sessão com o paciente</title>
-  <link rel="stylesheet" href="style.css?v=21">
+  <link rel="stylesheet" href="style.css?v=26">
 </head>
 <body>
   <main class="app-shell chat-shell">
@@ -13,8 +13,15 @@
         <p class="modal-kicker">Sessão de psicologia</p>
         <h1 id="patientHeading">Carregando paciente...</h1>
       </div>
-      <div class="header-actions">
-        <button id="settingsBtn" class="icon-button" type="button" title="Configurações" aria-label="Configurações"><i data-lucide="settings" aria-hidden="true"></i></button>
+      <div class="header-actions session-timer" id="sessionTimer">
+        <button id="timerStartBtn" class="icon-button" type="button" title="Iniciar a sessão" aria-label="Iniciar a sessão"><i data-lucide="play" aria-hidden="true"></i></button>
+        <span id="timerDisplay" class="timer-display" aria-live="off">--:--</span>
+        <button id="timerVisibilityBtn" class="icon-button" type="button" title="Ocultar o tempo" aria-label="Ocultar o tempo"><i data-lucide="eye" aria-hidden="true"></i></button>
+        <button id="timerEndBtn" class="icon-button timer-end" type="button" title="Encerrar a sessão agora" aria-label="Encerrar a sessão agora"><i data-lucide="circle-stop" aria-hidden="true"></i></button>
+        <div id="timerTooltip" class="timer-tooltip" role="status" hidden>
+          <p>O tempo acabou. Você ainda pode enviar <strong>uma última mensagem</strong> para encerrar a consulta.</p>
+          <button id="timerTooltipClose" class="timer-tooltip-close" type="button" aria-label="Fechar aviso"><i data-lucide="x" aria-hidden="true"></i></button>
+        </div>
       </div>
     </header>
 
@@ -50,30 +57,24 @@
     </div>
   </main>
 
-  <div id="settingsModal" class="modal-backdrop" hidden>
-    <section class="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
+  <div id="endSessionModal" class="modal-backdrop" hidden>
+    <section class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="endSessionTitle" aria-describedby="endSessionText">
       <div class="modal-header">
         <div>
-          <p class="modal-kicker">Configurações</p>
-          <h2 id="settingsModalTitle">Chave da API Gemini</h2>
+          <p class="modal-kicker">Encerrar sessão</p>
+          <h2 id="endSessionTitle">Encerrar a sessão agora?</h2>
         </div>
-        <button id="closeSettingsBtn" class="modal-close" type="button" aria-label="Fechar configurações"><i data-lucide="x" aria-hidden="true"></i></button>
+        <button id="endSessionCloseBtn" class="modal-close" type="button" aria-label="Cancelar"><i data-lucide="x" aria-hidden="true"></i></button>
       </div>
-      <div class="settings-body">
-        <p class="small">Cole sua chave da API do Gemini para conversar com o paciente. Ela é salva somente neste navegador (localStorage) e nunca é enviada ao repositório no GitHub.</p>
-        <label for="geminiApiKeyInput">Chave da API
-          <div class="key-input-row">
-            <input id="geminiApiKeyInput" type="password" autocomplete="off" spellcheck="false" placeholder="AIza..." />
-            <button id="toggleKeyVisibilityBtn" type="button" class="icon-button" title="Mostrar ou ocultar chave" aria-label="Mostrar ou ocultar chave"><i data-lucide="eye" aria-hidden="true"></i></button>
-          </div>
-        </label>
-        <a class="text-button" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Obter uma chave gratuita no Google AI Studio</a>
-        <button id="saveSettingsBtn" class="primary-button" type="button">Salvar</button>
+      <p id="endSessionText" class="small">A consulta será encerrada imediatamente, o cronômetro vai a zero e não será possível enviar mais nenhuma mensagem. Esta ação não pode ser desfeita.</p>
+      <div class="confirm-actions">
+        <button id="endSessionCancelBtn" class="secondary-button" type="button">Cancelar</button>
+        <button id="endSessionConfirmBtn" class="primary-button danger-button" type="button">Encerrar sessão</button>
       </div>
     </section>
   </div>
 
   <script src="https://unpkg.com/lucide@0.468.0"></script>
-  <script src="chat.js?v=9" type="module"></script>
+  <script src="chat.js?v=15" type="module"></script>
 </body>
 </html>

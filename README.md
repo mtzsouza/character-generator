@@ -22,8 +22,10 @@ Click the sparkles icon next to a character's ID (in its profile modal) to gener
 childhood, relationships, everyday life, the reason they sought a first consultation,
 and more guarded material tied to their hereditary psychopathology tendency.
 
-This requires a Gemini API key, pasted into the settings modal (gear icon in the
-page header). The key is saved only in the browser's `localStorage` and is never
+This requires a Gemini API key, set from the settings menu (gear icon in the
+generator's page header), which opens a menu of configuration panels — currently
+the API key and the session duration. Trying to generate stories or open a chat
+without a key jumps straight to the API key panel. The key is saved only in the browser's `localStorage` and is never
 written to any file in this repository — it is not safe to share this build
 publicly with your own key saved in it, since the browser calls the Gemini API
 directly with that key. Get a free key at
@@ -40,12 +42,30 @@ plays the patient, powered by Gemini.
 - The side panel shows the patient's **anamnese** — intake-level information
   only. Personality scores, functionality scores and the generated stories stay
   hidden, since uncovering them through the conversation is the point.
+- The chat tab has no settings of its own. In the top right it carries the
+  session timer instead: it counts down from the configured duration (45 minutes
+  by default), does not start on its own, and only lets you send messages while
+  it is running. Press play to begin the session. When it reaches zero a tooltip
+  drops from the timer and you still get exactly one closing message, so the
+  consultation can be wrapped up instead of being cut mid-sentence; after that
+  the composer closes for good. A stop button ends the session early (after a
+  confirmation), which zeroes the clock and locks the chat immediately — with no
+  closing message, since ending early is already a deliberate choice. The eye
+  icon hides the countdown without pausing it, and
+  the end time is persisted, so reloading resumes the real remaining time rather
+  than handing back a fresh clock.
 - Each click of the chat icon starts a brand new, independent conversation.
   Within a conversation the full history is resent on every turn, so the patient
   remembers everything said in that session (and survives a page reload).
 - The patient stays in character, speaking in a way consistent with its
   communication style, personality and functionality scores, and only opens up
   about guarded material once trust is built.
+- The patient also feels the clock. Under 20% of remaining time it starts closing
+  down, and may mention that something exists it never got to say — the
+  "doorknob" moment — without revealing what it is. Running the clock down is
+  deliberately not a shortcut to guarded material, and a session that stayed
+  superficial ends superficial. The one reply after the clock hits zero is framed
+  as the session's goodbye.
 - Every message you send is screened by a preemptive Gemini check before it
   reaches the patient, covering prompt injection, content offensive to the
   patient, tone unbecoming of a psychologist, and messages not written in
@@ -79,6 +99,7 @@ The JSON files are loaded by the browser at runtime, so a local HTTP server is r
 - `app.js` - population generation and visualization logic
 - `chat.html` / `chat.js` - the isolated patient chat tab
 - `gemini.js` - shared Gemini client (API key storage, model fallback)
+- `settings.js` - shared app settings (session duration)
 - `prompts/storyPrompt.js` - story-generation prompt, taxonomy and response schema
 - `prompts/chatPrompt.js` - patient persona/system prompt for the chat
 - `prompts/guardrailPrompt.js` - guardrail judge prompt, categories and schema

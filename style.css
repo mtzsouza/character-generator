@@ -81,6 +81,43 @@ label{display:block;margin:11px 0 0;color:#58676a;font-size:11px;font-weight:750
 .chat-input-row textarea:disabled{background:#f1f0ea;color:#8a9694}
 .chat-input-row .icon-button{flex:none}
 .settings-modal{display:flex;flex-direction:column;width:min(460px,calc(100vw - 32px));border:1px solid #9cafaa;border-radius:2px;background:#f7f5ef;box-shadow:10px 10px 0 rgba(6,25,27,.22);padding:20px}
+.settings-heading{display:flex;align-items:center;gap:10px;min-width:0}
+.settings-back{flex:none;width:28px;height:28px}
+.settings-back svg{width:14px;height:14px}
+.settings-back[hidden]{display:none}
+.settings-body{min-height:250px}
+.settings-menu{display:flex;flex-direction:column;gap:8px}
+.settings-menu[hidden]{display:none}
+.settings-menu-item{display:flex;align-items:center;gap:11px;width:100%;padding:12px 13px;border:1px solid #aebbb6;border-left:3px solid #1f6869;border-radius:2px;background:#fffdf8;text-align:left}
+.settings-menu-item:hover{background:#e4eee9}
+.settings-menu-item svg{flex:none;width:17px;height:17px;color:#1f6869;stroke-width:2}
+.settings-menu-item svg:last-child{width:14px;height:14px;margin-left:auto;color:#aebbb6}
+.settings-menu-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+.settings-menu-text strong{color:#173f43;font-size:12px}
+.settings-menu-text small{color:#687779;font-size:10px;line-height:1.35}
+.settings-panel[hidden]{display:none}
+.settings-panel input[type=number]{max-width:140px}
+.session-timer{gap:9px;position:relative}
+.timer-tooltip{position:absolute;top:calc(100% + 10px);right:0;z-index:5;display:flex;align-items:flex-start;gap:8px;width:max-content;max-width:min(290px,calc(100vw - 32px));padding:10px 11px;border:1px solid #d8bca8;border-left:3px solid #b45f36;background:#fbf3ec;box-shadow:4px 4px 0 rgba(38,59,61,.1)}
+.timer-tooltip[hidden]{display:none}
+.timer-tooltip::before{content:'';position:absolute;top:-6px;right:18px;width:10px;height:10px;border-left:1px solid #d8bca8;border-top:1px solid #d8bca8;background:#fbf3ec;transform:rotate(45deg)}
+.timer-tooltip p{margin:0;color:#7d4a2c;font-size:11px;line-height:1.45;text-align:left}
+.timer-tooltip strong{color:#8d3f18}
+.timer-tooltip-close{flex:none;display:grid;place-items:center;width:18px;height:18px;padding:0;border:none;border-radius:50%;background:none;color:#b08a6d}
+.timer-tooltip-close:hover{color:#7d4a2c}
+.timer-tooltip-close svg{width:12px;height:12px;stroke-width:2.5}
+.timer-display{min-width:54px;color:#173f43;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;text-align:center}
+.timer-display.timer-ended{color:#b45f36}
+.timer-end{color:#b45f36}
+.timer-end:hover{background:#f7e4d8}
+.timer-end:disabled{color:#aebbb6}
+.confirm-modal{display:flex;flex-direction:column;width:min(420px,calc(100vw - 32px));border:1px solid #9cafaa;border-radius:2px;background:#f7f5ef;box-shadow:10px 10px 0 rgba(6,25,27,.22);padding:20px}
+.confirm-modal .small{margin:0}
+.confirm-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:18px}
+.confirm-actions .primary-button,.confirm-actions .secondary-button{width:auto;margin-top:0;padding:10px 15px}
+.danger-button{border-color:#b45f36;background:#b45f36}
+.danger-button:hover{background:#96471f}
+#timerStartBtn[hidden]{display:none}
 .settings-body .small{margin:0 0 4px}
 .key-input-row{display:flex;gap:8px;align-items:center;margin-top:6px}
 .key-input-row input{margin-top:0}

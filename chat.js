@@ -1,8 +1,9 @@
 // Patient chat - runs in its own tab and only ever sees a single patient's data,
 // handed over through a session entry in localStorage.
 
-import { generateContent, responseText, getGeminiApiKey, setGeminiApiKey } from './gemini.js';
-import { buildPatientSystemPrompt, resolvePhase } from './prompts/chatPrompt.js';
+import { generateContent, responseText, getGeminiApiKey } from './gemini.js';
+import { DEFAULT_SESSION_MINUTES } from './settings.js';
+import { buildPatientSystemPrompt, resolvePhase, resolveSessionPressure } from './prompts/chatPrompt.js';
 import { buildGuardrailPrompt, GUARDRAIL_RESPONSE_SCHEMA, GUARDRAIL_NOTICES, OVERRIDABLE_CATEGORIES } from './prompts/guardrailPrompt.js';
 
 const params = new URLSearchParams(window.location.search);
@@ -34,27 +35,144 @@ const guardrailActions = document.getElementById('guardrailActions');
 const chatInput = document.getElementById('chatInput');
 const sendBtn = document.getElementById('sendBtn');
 
-// Settings modal (Gemini API key) ------------------------------------------
-const settingsModal = document.getElementById('settingsModal');
-const geminiApiKeyInput = document.getElementById('geminiApiKeyInput');
-function openSettingsModal(){
-  geminiApiKeyInput.value = getGeminiApiKey();
-  geminiApiKeyInput.type = 'password';
-  settingsModal.hidden = false;
-  document.body.classList.add('modal-open');
+// Session timer -----------------------------------------------------------
+// The clock is started manually and its end time is persisted, so a reload
+// resumes the real remaining time instead of handing back a fresh session.
+const TIMER_KEY = `chatTimer:${sessionId}`;
+const TIMER_HIDDEN_STORAGE = 'timerHidden';
+const timerStartBtn = document.getElementById('timerStartBtn');
+const timerDisplay = document.getElementById('timerDisplay');
+const timerVisibilityBtn = document.getElementById('timerVisibilityBtn');
+const timerTooltip = document.getElementById('timerTooltip');
+const timerEndBtn = document.getElementById('timerEndBtn');
+const endSessionModal = document.getElementById('endSessionModal');
+
+let durationMs = DEFAULT_SESSION_MINUTES * 60000;
+let endsAt = null;
+let tickHandle = null;
+// When the clock runs out the psychologist still gets one closing message, so
+// the session can be wrapped up instead of being cut mid-sentence.
+let finalMessageUsed = false;
+let tooltipDismissed = false;
+
+// idle -> running -> grace (one last message) -> closed
+function timerState(){
+  if(!endsAt) return 'idle';
+  if(remainingMs() > 0) return 'running';
+  return finalMessageUsed ? 'closed' : 'grace';
 }
-function closeSettingsModal(){
-  settingsModal.hidden = true;
+function isExpired(){
+  const state = timerState();
+  return state === 'grace' || state === 'closed';
+}
+function persistTimer(){
+  saveJSON(TIMER_KEY, { endsAt, finalMessageUsed });
+}
+function remainingMs(){
+  return endsAt ? Math.max(0, endsAt - Date.now()) : durationMs;
+}
+function formatClock(ms){
+  const total = Math.ceil(ms / 1000);
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+function isTimerHidden(){
+  try { return localStorage.getItem(TIMER_HIDDEN_STORAGE) === '1'; } catch(e){ return false; }
+}
+function setTimerHidden(hidden){
+  try { localStorage.setItem(TIMER_HIDDEN_STORAGE, hidden ? '1' : '0'); } catch(e){ /* preference just won't persist */ }
+}
+
+// Runs twice a second, so it only touches text.
+function renderClock(){
+  timerDisplay.textContent = isTimerHidden() ? '--:--' : formatClock(remainingMs());
+  timerDisplay.classList.toggle('timer-ended', isExpired());
+}
+
+// Rebuilds icons, so it runs only on an actual state change.
+function renderTimerChrome(){
+  const hidden = isTimerHidden();
+  const state = timerState();
+  timerTooltip.hidden = !(state === 'grace' && !tooltipDismissed);
+  timerStartBtn.hidden = state !== 'idle';
+  timerEndBtn.disabled = isExpired();
+  timerVisibilityBtn.innerHTML = `<i data-lucide="${hidden ? 'eye-off' : 'eye'}" aria-hidden="true"></i>`;
+  timerVisibilityBtn.title = hidden ? 'Mostrar o tempo' : 'Ocultar o tempo';
+  timerVisibilityBtn.setAttribute('aria-label', timerVisibilityBtn.title);
+  if(window.lucide) window.lucide.createIcons();
+  renderClock();
+}
+
+function stopTicking(){
+  if(tickHandle){ clearInterval(tickHandle); tickHandle = null; }
+}
+
+function tick(){
+  renderClock();
+  if(timerState() !== 'running'){
+    stopTicking();
+    renderTimerChrome();
+    updateComposerState();
+    renderMessages();
+  }
+}
+
+function startTimer(){
+  if(timerState() !== 'idle') return;
+  endsAt = Date.now() + durationMs;
+  persistTimer();
+  stopTicking();
+  tickHandle = setInterval(tick, 500);
+  renderTimerChrome();
+  updateComposerState();
+  renderMessages();
+  chatInput.focus();
+}
+
+function openEndSessionModal(){
+  if(isExpired()) return;
+  endSessionModal.hidden = false;
+  document.body.classList.add('modal-open');
+  document.getElementById('endSessionConfirmBtn').focus();
+}
+function closeEndSessionModal(){
+  endSessionModal.hidden = true;
   document.body.classList.remove('modal-open');
 }
-document.getElementById('settingsBtn').addEventListener('click', openSettingsModal);
-document.getElementById('closeSettingsBtn').addEventListener('click', closeSettingsModal);
-settingsModal.addEventListener('click', (ev)=>{ if(ev.target === settingsModal) closeSettingsModal(); });
-window.addEventListener('keydown', (ev)=>{ if(ev.key === 'Escape' && !settingsModal.hidden) closeSettingsModal(); });
-document.getElementById('saveSettingsBtn').addEventListener('click', ()=>{ setGeminiApiKey(geminiApiKeyInput.value.trim()); closeSettingsModal(); });
-document.getElementById('toggleKeyVisibilityBtn').addEventListener('click', ()=>{
-  geminiApiKeyInput.type = geminiApiKeyInput.type === 'password' ? 'text' : 'password';
-});
+
+// Ending early is deliberate, so it closes the session outright - no closing
+// message, unlike letting the clock run out.
+function endSessionNow(){
+  closeEndSessionModal();
+  if(isExpired()) return;
+  endsAt = Date.now();
+  finalMessageUsed = true;
+  tooltipDismissed = true;
+  persistTimer();
+  stopTicking();
+  renderClock();
+  renderTimerChrome();
+  updateComposerState();
+  renderMessages();
+}
+
+timerStartBtn.addEventListener('click', startTimer);
+timerEndBtn.addEventListener('click', openEndSessionModal);
+document.getElementById('endSessionConfirmBtn').addEventListener('click', endSessionNow);
+document.getElementById('endSessionCancelBtn').addEventListener('click', closeEndSessionModal);
+document.getElementById('endSessionCloseBtn').addEventListener('click', closeEndSessionModal);
+endSessionModal.addEventListener('click', (ev)=>{ if(ev.target === endSessionModal) closeEndSessionModal(); });
+window.addEventListener('keydown', (ev)=>{ if(ev.key === 'Escape' && !endSessionModal.hidden) closeEndSessionModal(); });
+timerVisibilityBtn.addEventListener('click', ()=>{ setTimerHidden(!isTimerHidden()); renderTimerChrome(); });
+document.getElementById('timerTooltipClose').addEventListener('click', ()=>{ tooltipDismissed = true; renderTimerChrome(); });
+
+function initTimer(){
+  durationMs = (patient.durationMinutes || DEFAULT_SESSION_MINUTES) * 60000;
+  const stored = loadJSON(TIMER_KEY);
+  if(stored && typeof stored.endsAt === 'number') endsAt = stored.endsAt;
+  finalMessageUsed = !!(stored && stored.finalMessageUsed);
+  if(timerState() === 'running') tickHandle = setInterval(tick, 500);
+  renderTimerChrome();
+}
 
 // Session ------------------------------------------------------------------
 const patient = sessionId ? loadJSON(SESSION_KEY) : null;
@@ -64,8 +182,11 @@ function startSession(){
   patientHeading.textContent = patient.name;
   chatWorkspace.hidden = false;
   renderAnamnese();
+  // The timer must be restored before the first render: the empty-state message
+  // depends on whether the session is idle, running or already over.
+  initTimer();
   renderMessages();
-  chatInput.focus();
+  updateComposerState();
 }
 
 // The anamnese intentionally shows only intake-level information. Personality
@@ -105,9 +226,16 @@ let checking = false;
 function renderMessages(){
   chatMessages.innerHTML = '';
   if(!history.length && !pending){
+    const state = timerState();
     const empty = document.createElement('p');
     empty.className = 'small chat-empty';
-    empty.textContent = 'A sessão vai começar. Cumprimente o paciente para iniciar a conversa.';
+    empty.textContent = state === 'idle'
+      ? 'Inicie a sessão para começar.'
+      : state === 'grace'
+        ? 'O tempo acabou. Você ainda pode enviar uma última mensagem.'
+        : state === 'closed'
+          ? 'A sessão terminou.'
+          : 'A sessão vai começar. Cumprimente o paciente para iniciar a conversa.';
     chatMessages.appendChild(empty);
   }
   history.forEach(message => {
@@ -141,9 +269,27 @@ function renderMessages(){
 
 function setPending(value){
   pending = value;
-  chatInput.disabled = value;
-  sendBtn.disabled = value;
+  updateComposerState();
   renderMessages();
+}
+
+function canSend(){
+  const state = timerState();
+  return (state === 'running' || state === 'grace') && !pending && !checking;
+}
+
+function updateComposerState(){
+  const state = timerState();
+  const blocked = !canSend();
+  chatInput.disabled = blocked;
+  sendBtn.disabled = blocked;
+  chatInput.placeholder = state === 'idle'
+    ? 'Inicie a sessão no cronômetro para começar...'
+    : state === 'grace'
+      ? 'O tempo acabou. Escreva sua última mensagem...'
+      : state === 'closed'
+        ? 'A sessão terminou.'
+        : 'Escreva sua fala como psicólogo...';
 }
 
 function showChatError(message){
@@ -157,9 +303,8 @@ const GUARDRAIL_CONTEXT_TURNS = 6;
 
 function setChecking(value){
   checking = value;
-  chatInput.disabled = value;
-  sendBtn.disabled = value;
   checkingNotice.hidden = !value;
+  updateComposerState();
 }
 
 function hideGuardrailNotice(){
@@ -209,7 +354,15 @@ async function checkGuardrails(text){
 }
 
 async function sendMessage(text, { skipGuardrail = false } = {}){
-  if(!getGeminiApiKey()){ openSettingsModal(); return; }
+  const state = timerState();
+  if(state !== 'running' && state !== 'grace'){
+    showChatError(state === 'idle' ? 'Inicie a sessão para enviar mensagens.' : 'A sessão terminou.');
+    return;
+  }
+  if(!getGeminiApiKey()){
+    showChatError('Nenhuma chave da API configurada. Configure-a no gerador de personagens e abra a conversa novamente.');
+    return;
+  }
   chatError.hidden = true;
   hideGuardrailNotice();
 
@@ -231,6 +384,13 @@ async function sendMessage(text, { skipGuardrail = false } = {}){
     }
   }
 
+  const isFinalMessage = timerState() === 'grace';
+  const remainingRatio = durationMs > 0 ? remainingMs() / durationMs : 0;
+  if(isFinalMessage){
+    finalMessageUsed = true;
+    persistTimer();
+    renderTimerChrome();
+  }
   history.push({ role: 'user', text });
   saveJSON(HISTORY_KEY, history);
   setPending(true);
@@ -239,7 +399,7 @@ async function sendMessage(text, { skipGuardrail = false } = {}){
     // wherever the conversation actually was.
     const exchange = history.filter(message => message.role === 'user').length;
     const data = await generateContent({
-      systemInstruction: { parts: [{ text: buildPatientSystemPrompt(patient, resolvePhase(exchange)) }] },
+      systemInstruction: { parts: [{ text: buildPatientSystemPrompt(patient, resolvePhase(exchange), resolveSessionPressure(remainingRatio, isFinalMessage)) }] },
       contents: history.map(message => ({ role: message.role, parts: [{ text: message.text }] }))
     });
     const reply = responseText(data);
