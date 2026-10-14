@@ -28,11 +28,19 @@
     <p id="sessionError" class="session-error" hidden></p>
 
     <div class="chat-workspace" id="chatWorkspace" hidden>
-      <section class="panel anamnese-panel">
+      <section class="panel side-panel">
         <div class="control-heading">
-          <h2>Anamnese</h2>
+          <div class="settings-heading">
+            <button id="sideBackBtn" class="icon-button settings-back" type="button" title="Voltar" aria-label="Voltar ao menu" hidden><i data-lucide="arrow-left"></i></button>
+            <h2 id="sideTitle">Menu</h2>
+          </div>
         </div>
-        <div id="anamnese" class="anamnese"></div>
+        <div id="sideMenu" class="side-menu">
+          <button class="side-menu-item" type="button" data-view="anamnese" title="Anamnese" aria-label="Anamnese"><i data-lucide="clipboard-list"></i></button>
+          <button class="side-menu-item" type="button" data-view="diagram" title="Diagrama" aria-label="Diagrama"><i data-lucide="network"></i></button>
+        </div>
+        <div id="sideView-anamnese" class="side-view" hidden><div id="anamnese" class="anamnese"></div></div>
+        <div id="sideView-diagram" class="side-view" hidden><form id="diagramForm" class="diagram-form"></form></div>
       </section>
 
       <section class="panel chat-panel">
@@ -75,6 +83,6 @@
   </div>
 
   <script src="https://unpkg.com/lucide@0.468.0"></script>
-  <script src="chat.js?v=17" type="module"></script>
+  <script src="chat.js?v=18" type="module"></script>
 </body>
 </html>

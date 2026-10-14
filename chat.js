@@ -5,6 +5,7 @@ import { generateContent, responseText, getGeminiApiKey } from './gemini.js';
 import { DEFAULT_SESSION_MINUTES } from './settings.js';
 import { buildPatientSystemPrompt, resolvePhase, resolveSessionPressure, RAPPORT_INITIAL, RAPPORT_MAX, RAPPORT_MIN, normalizeRapportDelta, applyRapportDelta, PATIENT_RESPONSE_SCHEMA } from './prompts/chatPrompt.js';
 import { buildGuardrailPrompt, GUARDRAIL_RESPONSE_SCHEMA, GUARDRAIL_NOTICES, OVERRIDABLE_CATEGORIES } from './prompts/guardrailPrompt.js';
+import { DIAGRAM_FIELDS, buildDiagramForm } from './diagram.js';
 
 const params = new URLSearchParams(window.location.search);
 const sessionId = params.get('session') || '';
@@ -34,6 +35,11 @@ const guardrailReason = document.getElementById('guardrailReason');
 const guardrailActions = document.getElementById('guardrailActions');
 const chatInput = document.getElementById('chatInput');
 const sendBtn = document.getElementById('sendBtn');
+// Side panel (menu + views)
+const sideMenu = document.getElementById('sideMenu');
+const sideBackBtn = document.getElementById('sideBackBtn');
+const sideTitle = document.getElementById('sideTitle');
+const diagramForm = document.getElementById('diagramForm');
 
 // Session timer -----------------------------------------------------------
 // The clock is started manually and its end time is persisted, so a reload
@@ -174,6 +180,61 @@ function initTimer(){
   renderTimerChrome();
 }
 
+// Side panel navigation (menu + views) -----
+const SIDE_VIEWS = {
+  anamnese: { title: 'Anamnese' },
+  diagram: { title: 'Diagrama de Conceituação Cognitiva' }
+};
+
+const DIAGRAM_KEY = `chatDiagram:${sessionId}`;
+let diagramSaveTimeout = null;
+
+function showSideView(name){
+  Object.keys(SIDE_VIEWS).forEach(key => {
+    const view = document.getElementById(`sideView-${key}`);
+    if(view) view.hidden = key !== name;
+  });
+  const view = SIDE_VIEWS[name];
+  sideMenu.hidden = !!view;
+  sideBackBtn.hidden = !view;
+  sideTitle.textContent = view ? view.title : 'Menu';
+  if(window.lucide) window.lucide.createIcons();
+}
+
+function saveDiagramValue(id, value){
+  clearTimeout(diagramSaveTimeout);
+  const current = loadJSON(DIAGRAM_KEY) || {};
+  current[id] = value;
+  saveJSON(DIAGRAM_KEY, current);
+  diagramSaveTimeout = setTimeout(() => { /* debounced save */ }, 400);
+}
+
+function initDiagram(){
+  const saved = loadJSON(DIAGRAM_KEY) || {};
+  buildDiagramForm(diagramForm, saved, (id, value) => saveDiagramValue(id, value));
+  // Flush on blur and page unload
+  diagramForm.addEventListener('blur', () => {
+    const current = loadJSON(DIAGRAM_KEY) || {};
+    Array.from(diagramForm.querySelectorAll('textarea')).forEach(ta => {
+      current[ta.id] = ta.value;
+    });
+    saveJSON(DIAGRAM_KEY, current);
+  }, true);
+  window.addEventListener('pagehide', () => {
+    const current = loadJSON(DIAGRAM_KEY) || {};
+    Array.from(diagramForm.querySelectorAll('textarea')).forEach(ta => {
+      current[ta.id] = ta.value;
+    });
+    saveJSON(DIAGRAM_KEY, current);
+  });
+}
+
+// Wire side panel navigation
+sideBackBtn.addEventListener('click', () => showSideView(null));
+sideMenu.querySelectorAll('.side-menu-item').forEach(item => {
+  item.addEventListener('click', () => showSideView(item.dataset.view));
+});
+
 // Session ------------------------------------------------------------------
 const patient = sessionId ? loadJSON(SESSION_KEY) : null;
 
@@ -182,6 +243,8 @@ function startSession(){
   patientHeading.textContent = patient.name;
   chatWorkspace.hidden = false;
   renderAnamnese();
+  initDiagram();
+  showSideView(null); // Start in the main menu
   // The timer must be restored before the first render: the empty-state message
   // depends on whether the session is idle, running or already over.
   initTimer();
