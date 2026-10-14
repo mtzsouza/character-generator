@@ -35,6 +35,9 @@ Perfil do personagem:
 - Nome: ${ch.name}
 - Gênero: ${ch.gender}
 - Faixa etária: ${ch.ageRange}
+- Idade (exata): ${ch.age || '-'} anos
+- Escolaridade: ${ch.education || 'Médio'}
+- Nível socioeconômico: ${ch.socioeconomic || 'Classe C'}
 - Ocupação: ${ch.occupation}
 - Hobby: ${ch.hobby}
 - Orientação sexual: ${ch.sexualOrientation}
@@ -45,7 +48,7 @@ Perfil do personagem:
 - Médias de personalidade por domínio (escala 0-10, Big Five): ${personalitySummary}
 - Funcionalidade por área (escala 0-10): ${functionalSummary}
 
-Gere exatamente estas histórias, como fragmentos narrativos que o personagem poderia contar em primeira pessoa durante uma consulta:
+Todas as histórias devem ser coerentes com a escolaridade, classe social e idade do personagem: acontecimentos reais, problemas relevantes ao contexto dele, linguagem apropriada. Gere exatamente estas histórias, como fragmentos narrativos que o personagem poderia contar em primeira pessoa durante uma consulta:
 - 2 histórias de categoria "infancia" (contexto familiar/formativo)
 - 2 a 3 histórias de categoria "relacionamentos" (amizades, família atual, relacionamento amoroso)
 - 2 a 3 histórias de categoria "cotidiano" (triviais, ligadas ao hobby/ocupação, sem relação direta com qualquer diagnóstico - servem para criar rapport)

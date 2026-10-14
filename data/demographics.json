@@ -1,0 +1,39 @@
+{
+  "ageBounds": {
+    "Adulto jovem": { "min": 18, "max": 29 },
+    "Adulto estabelecido": { "min": 30, "max": 44 },
+    "Meia-idade": { "min": 45, "max": 59 },
+    "Idoso": { "min": 60, "max": 89 }
+  },
+  "education": {
+    "levels": ["Fundamental", "Médio", "Superior"],
+    "byAgeRange": {
+      "Adulto jovem": { "Fundamental": 25, "Médio": 55, "Superior": 20 },
+      "Adulto estabelecido": { "Fundamental": 30, "Médio": 44, "Superior": 26 },
+      "Meia-idade": { "Fundamental": 48, "Médio": 36, "Superior": 16 },
+      "Idoso": { "Fundamental": 75, "Médio": 16, "Superior": 9 }
+    }
+  },
+  "socioeconomic": {
+    "classes": ["Classe A", "Classe B", "Classe C", "Classe D", "Classe E"],
+    "byEducation": {
+      "Fundamental": { "Classe A": 1, "Classe B": 4, "Classe C": 62, "Classe D": 18, "Classe E": 15 },
+      "Médio": { "Classe A": 3, "Classe B": 12, "Classe C": 68, "Classe D": 10, "Classe E": 7 },
+      "Superior": { "Classe A": 20, "Classe B": 33, "Classe C": 42, "Classe D": 3, "Classe E": 2 }
+    }
+  },
+  "sources": {
+    "age": {
+      "label": "Definição de limites etários por faixa de idade adulta",
+      "url": "https://www.ibge.gov.br/estatisticas/sociais/populacao/22827-censo-demografico-2022.html"
+    },
+    "education": {
+      "label": "IBGE, PNAD Contínua Educação 2023 (nível de instrução por faixa etária)",
+      "url": "https://agenciadenoticias.ibge.gov.br/agencia-noticias"
+    },
+    "socioeconomic": {
+      "label": "FGV Social, Classe Social e Renda Domiciliar 2024",
+      "url": "https://www.cps.fgv.br"
+    }
+  }
+}

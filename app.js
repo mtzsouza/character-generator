@@ -5,9 +5,10 @@ import { buildStoriesPrompt, STORIES_RESPONSE_SCHEMA } from './prompts/storyProm
 import { OPENING_MODES, RAPPORT_INITIAL } from './prompts/chatPrompt.js';
 import { getSessionMinutes, setSessionMinutes, clampSessionMinutes } from './settings.js';
 import { generateContent, responseText, getGeminiApiKey, setGeminiApiKey } from './gemini.js';
+import { pickAge, pickWeighted as demoPickWeighted, pickEducation, pickSocioeconomic, occupationWeights } from './demographics.js';
 
 // Trait definitions are loaded from the JSON data files before the app starts.
-const [personalityTraits, functionalTraits, names, occupations, hobbies, sexualOrientations, physicalHealthOptions, hereditaryTendencies, communicationStyles, communicationRegions, reasonsForFirstVisit, categoricalDefaults] = await Promise.all([
+const [personalityTraits, functionalTraits, names, occupations, hobbies, sexualOrientations, physicalHealthOptions, hereditaryTendencies, communicationStyles, communicationRegions, reasonsForFirstVisit, categoricalDefaults, demographics, occupationEducation] = await Promise.all([
   fetch('data/personality.json').then(response => response.json()),
   fetch('data/functionality.json').then(response => response.json()),
   fetch('data/names.json').then(response => response.json()),
@@ -19,7 +20,9 @@ const [personalityTraits, functionalTraits, names, occupations, hobbies, sexualO
   fetch('data/communicationStyle.json').then(response => response.json()),
   fetch('data/communicationRegion.json').then(response => response.json()),
   fetch('data/reasonForFirstVisit.json').then(response => response.json()),
-  fetch('data/categoricalProbabilities.json').then(response => response.json())
+  fetch('data/categoricalProbabilities.json').then(response => response.json()),
+  fetch('data/demographics.json').then(response => response.json()),
+  fetch('data/occupationEducation.json').then(response => response.json())
 ]);
 const personalityFacets = personalityTraits.flatMap(trait => trait.facets.map(facet => facet.key));
 // Neuroticism facets run in the opposite direction from the other four domains: higher N
@@ -318,6 +321,9 @@ function openChatTab(ch){
     name: ch.name,
     gender: ch.gender,
     ageRange: ch.ageRange,
+    age: ch.age,
+    education: ch.education,
+    socioeconomic: ch.socioeconomic,
     occupation: ch.occupation,
     hobby: ch.hobby,
     sexualOrientation: ch.sexualOrientation,
@@ -368,10 +374,14 @@ function genCharacter(idNum){
   functionalVars.forEach(name=>{ const raw = sampleFromBlock(pickBlockIndex()); f[name]=applyVarTrend(raw, functionalVariability, functionalTrend); });
   const gender = pickTrait('gender');
   const ageRange = pickTrait('ageRange');
+  const age = pickAge(ageRange, demographics.ageBounds);
+  const education = pickEducation(ageRange, demographics.education);
+  const socioeconomic = pickSocioeconomic(education, demographics.socioeconomic);
   const occupationPool = occupations[ageRange];
+  const occWeights = occupationWeights(occupationPool, education, occupationEducation, categoricalProbabilities.occupation);
   const pAvg = personalityPositiveIndex(p);
   const fAvg = +(Object.values(f).reduce((a,b)=>a+b,0)/functionalVars.length).toFixed(4);
-  return {id, name: pickName(gender), gender, ageRange, occupation: pickWeighted(occupationPool, categoricalProbabilities.occupation), hobby: pickTrait('hobby'), sexualOrientation: pickTrait('sexualOrientation'), physicalHealth: pickTrait('physicalHealth'), hereditaryPsychopathologyTendencies: pickTrait('hereditaryPsychopathologyTendencies'), communicationStyle: pickTrait('communicationStyle'), communicationRegion: pickTrait('communicationRegion'), reasonForFirstVisit: pickTrait('reasonForFirstVisit'), personality:p, functional:f, personalityAvg:pAvg, functionalAvg:fAvg, rapport:RAPPORT_INITIAL};
+  return {id, name: pickName(gender), gender, ageRange, age, education, socioeconomic, occupation: pickWeighted(occupationPool, occWeights), hobby: pickTrait('hobby'), sexualOrientation: pickTrait('sexualOrientation'), physicalHealth: pickTrait('physicalHealth'), hereditaryPsychopathologyTendencies: pickTrait('hereditaryPsychopathologyTendencies'), communicationStyle: pickTrait('communicationStyle'), communicationRegion: pickTrait('communicationRegion'), reasonForFirstVisit: pickTrait('reasonForFirstVisit'), personality:p, functional:f, personalityAvg:pAvg, functionalAvg:fAvg, rapport:RAPPORT_INITIAL};
 }
 
 function generatePopulation(n){
@@ -480,7 +490,7 @@ function showProfile(ch){
   const profileDiv = document.getElementById('profile');
   const profileModal = document.getElementById('profileModal');
   document.getElementById('profileModalTitle').textContent = ch.id;
-  let html = `<div class="profile-summary"><div><span class="profile-label">Nome</span><strong>${ch.name}</strong></div><div><span class="profile-label">Gênero</span><strong>${ch.gender}</strong></div><div><span class="profile-label">Faixa etária</span><strong>${ch.ageRange}</strong></div><div><span class="profile-label">Ocupação</span><strong>${ch.occupation}</strong></div><div><span class="profile-label">Hobby</span><strong>${ch.hobby}</strong></div><div><span class="profile-label">Orientação sexual</span><strong>${ch.sexualOrientation}</strong></div><div><span class="profile-label">Saúde física</span><strong>${ch.physicalHealth}</strong></div><div><span class="profile-label">Tendência de psicopatologia hereditária</span><strong>${ch.hereditaryPsychopathologyTendencies}</strong></div><div><span class="profile-label">Estilo de comunicação</span><strong>${ch.communicationStyle}</strong></div><div><span class="profile-label">Região de comunicação</span><strong>${ch.communicationRegion}</strong></div><div><span class="profile-label">Motivo da primeira consulta</span><strong>${ch.reasonForFirstVisit}</strong></div><div><span class="profile-label">Média de personalidade</span><strong>${ch.personalityAvg.toFixed(4)}</strong></div><div><span class="profile-label">Média de funcionalidade</span><strong>${ch.functionalAvg.toFixed(4)}</strong></div></div>`;
+  let html = `<div class="profile-summary"><div><span class="profile-label">Nome</span><strong>${ch.name}</strong></div><div><span class="profile-label">Gênero</span><strong>${ch.gender}</strong></div><div><span class="profile-label">Faixa etária</span><strong>${ch.ageRange}</strong></div><div><span class="profile-label">Idade</span><strong>${ch.age || '-'} anos</strong></div><div><span class="profile-label">Escolaridade</span><strong>${ch.education || '-'}</strong></div><div><span class="profile-label">Nível socioeconômico</span><strong>${ch.socioeconomic || '-'}</strong></div><div><span class="profile-label">Ocupação</span><strong>${ch.occupation}</strong></div><div><span class="profile-label">Hobby</span><strong>${ch.hobby}</strong></div><div><span class="profile-label">Orientação sexual</span><strong>${ch.sexualOrientation}</strong></div><div><span class="profile-label">Saúde física</span><strong>${ch.physicalHealth}</strong></div><div><span class="profile-label">Tendência de psicopatologia hereditária</span><strong>${ch.hereditaryPsychopathologyTendencies}</strong></div><div><span class="profile-label">Estilo de comunicação</span><strong>${ch.communicationStyle}</strong></div><div><span class="profile-label">Região de comunicação</span><strong>${ch.communicationRegion}</strong></div><div><span class="profile-label">Motivo da primeira consulta</span><strong>${ch.reasonForFirstVisit}</strong></div><div><span class="profile-label">Média de personalidade</span><strong>${ch.personalityAvg.toFixed(4)}</strong></div><div><span class="profile-label">Média de funcionalidade</span><strong>${ch.functionalAvg.toFixed(4)}</strong></div></div>`;
   html += '<section class="profile-section"><h3>Funcionalidade</h3><div class="functional-grid">';
   functionalTraits.forEach(trait => html += `<div class="profile-value"><span>${trait.name}<small>${trait.key}</small></span><strong>${ch.functional[trait.key].toFixed(2)}</strong></div>`);
   html += '</div></section><section class="profile-section"><h3>Personalidade</h3><div class="profile-grid">';
@@ -560,10 +570,10 @@ function renderAll(){
 // CSV Export/Import
 function exportCSV(){
   if(!state.characters.length) return alert('Nenhuma população para exportar');
-  const header = ['ID do Personagem', 'Nome', 'Gênero', 'Faixa etária', 'Ocupação', 'Hobby', 'Orientação sexual', 'Saúde física', 'Tendência de psicopatologia hereditária', 'Estilo de comunicação', 'Região de comunicação', 'Motivo da primeira consulta', ...personalityFacets, ...functionalVars, 'Média de Personalidade','Média de Funcionalidade'];
+  const header = ['ID do Personagem', 'Nome', 'Gênero', 'Faixa etária', 'Idade', 'Escolaridade', 'Nível socioeconômico', 'Ocupação', 'Hobby', 'Orientação sexual', 'Saúde física', 'Tendência de psicopatologia hereditária', 'Estilo de comunicação', 'Região de comunicação', 'Motivo da primeira consulta', ...personalityFacets, ...functionalVars, 'Média de Personalidade','Média de Funcionalidade'];
   const rows = [header.join(',')];
   state.characters.forEach(ch=>{
-    const line = [ch.id, ch.name, ch.gender, ch.ageRange, ch.occupation, ch.hobby, ch.sexualOrientation, ch.physicalHealth, ch.hereditaryPsychopathologyTendencies, ch.communicationStyle, ch.communicationRegion, ch.reasonForFirstVisit, ...personalityFacets.map(k=>ch.personality[k].toFixed(4)), ...functionalVars.map(k=>ch.functional[k].toFixed(4)), ch.personalityAvg.toFixed(4), ch.functionalAvg.toFixed(4)];
+    const line = [ch.id, ch.name, ch.gender, ch.ageRange, ch.age || '', ch.education || '', ch.socioeconomic || '', ch.occupation, ch.hobby, ch.sexualOrientation, ch.physicalHealth, ch.hereditaryPsychopathologyTendencies, ch.communicationStyle, ch.communicationRegion, ch.reasonForFirstVisit, ...personalityFacets.map(k=>ch.personality[k].toFixed(4)), ...functionalVars.map(k=>ch.functional[k].toFixed(4)), ch.personalityAvg.toFixed(4), ch.functionalAvg.toFixed(4)];
     rows.push(line.join(','));
   });
   const blob = new Blob([rows.join('\n')], {type:'text/csv'});
@@ -597,12 +607,18 @@ function parseCSV(text){
     if(!valid) continue;
     const pAvg = personalityPositiveIndex(p);
     const fAvg = +(Object.values(f).reduce((a,b)=>a+b,0)/functionalVars.length).toFixed(4);
+    const ageRange = cols[indices['Faixa etária']] || ageRanges[0];
+    const ageStr = cols[indices['Idade']];
+    const age = ageStr && /^\d+$/.test(ageStr.trim()) ? parseInt(ageStr.trim()) : null;
     chars.push({
       id,
       name: cols[indices['Nome']] || 'Personagem importado',
       gender: cols[indices['Gênero']] || 'Masculino',
-      ageRange: cols[indices['Faixa etária']] || ageRanges[0],
-      occupation: cols[indices['Ocupação']] || occupations[ageRanges[0]][0],
+      ageRange,
+      age,
+      education: cols[indices['Escolaridade']] || 'Médio',
+      socioeconomic: cols[indices['Nível socioeconômico']] || 'Classe C',
+      occupation: cols[indices['Ocupação']] || occupations[ageRange][0],
       hobby: cols[indices['Hobby']] || hobbies[0],
       sexualOrientation: cols[indices['Orientação sexual']] || sexualOrientations[0],
       physicalHealth: cols[indices['Saúde física']] || physicalHealthOptions[0],

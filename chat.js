@@ -194,7 +194,7 @@ function startSession(){
 // them through the conversation is the point of the exercise.
 const ANAMNESE_FIELDS = [
   ['Gênero', 'gender'],
-  ['Faixa etária', 'ageRange'],
+  ['Idade', 'age', (val) => val ? `${val} anos` : patient.ageRange],
   ['Ocupação', 'occupation'],
   ['Saúde física', 'physicalHealth'],
   ['Histórico familiar de psicopatologia', 'hereditaryPsychopathologyTendencies'],
@@ -203,14 +203,15 @@ const ANAMNESE_FIELDS = [
 
 function renderAnamnese(){
   anamnese.innerHTML = '';
-  ANAMNESE_FIELDS.forEach(([label, key]) => {
+  ANAMNESE_FIELDS.forEach(([label, key, formatter]) => {
     const row = document.createElement('div');
     row.className = 'anamnese-row';
     const labelEl = document.createElement('span');
     labelEl.className = 'profile-label';
     labelEl.textContent = label;
     const valueEl = document.createElement('strong');
-    valueEl.textContent = patient[key] || '-';
+    const rawValue = patient[key];
+    valueEl.textContent = (formatter ? formatter(rawValue) : rawValue) || '-';
     row.append(labelEl, valueEl);
     anamnese.appendChild(row);
   });

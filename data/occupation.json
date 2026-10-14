@@ -29,7 +29,17 @@
     "Agente de viagens",
     "Criador de conteúdo",
     "Barbeiro",
-    "Microempreendedor"
+    "Microempreendedor",
+    "Pedreiro",
+    "Motorista",
+    "Porteiro",
+    "Segurança",
+    "Pintor",
+    "Encanador",
+    "Eletricista",
+    "Mecânico",
+    "Carpinteiro",
+    "Faxineiro"
   ],
   "Adulto estabelecido": [
     "Administrador",
@@ -82,7 +92,17 @@
     "Veterinário",
     "Web designer",
     "YouTuber",
-    "Empresário"
+    "Empresário",
+    "Pedreiro",
+    "Motorista",
+    "Porteiro",
+    "Costureira",
+    "Vigilante",
+    "Agricultor",
+    "Segurança",
+    "Eletricista",
+    "Mecânico",
+    "Zelador"
   ],
   "Meia-idade": [
     "Administrador sênior",
@@ -139,7 +159,17 @@
     "Presidente de associação",
     "Investidor",
     "Comerciante",
-    "Proprietário de restaurante"
+    "Proprietário de restaurante",
+    "Pedreiro",
+    "Motorista",
+    "Porteiro",
+    "Costureira",
+    "Vigilante",
+    "Agricultor",
+    "Segurança",
+    "Eletricista",
+    "Mecânico",
+    "Zelador"
   ],
   "Idoso": [
     "Aposentado",
@@ -171,6 +201,16 @@
     "Autor independente",
     "Professor de idiomas",
     "Instrutor de ofícios",
-    "Cuidador familiar"
+    "Cuidador familiar",
+    "Pedreiro",
+    "Motorista",
+    "Porteiro",
+    "Costureira",
+    "Vigilante",
+    "Agricultor",
+    "Segurança",
+    "Eletricista",
+    "Mecânico",
+    "Zelador"
   ]
 }
