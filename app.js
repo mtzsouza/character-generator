@@ -2,7 +2,7 @@
 // Runs deferred after DOM parsing
 
 import { buildStoriesPrompt, STORIES_RESPONSE_SCHEMA } from './prompts/storyPrompt.js';
-import { OPENING_MODES } from './prompts/chatPrompt.js';
+import { OPENING_MODES, RAPPORT_INITIAL } from './prompts/chatPrompt.js';
 import { getSessionMinutes, setSessionMinutes, clampSessionMinutes } from './settings.js';
 import { generateContent, responseText, getGeminiApiKey, setGeminiApiKey } from './gemini.js';
 
@@ -332,6 +332,7 @@ function openChatTab(ch){
     // Drawn per session, so reopening the same patient gives a different opening.
     openingMode: OPENING_MODES[Math.floor(Math.random() * OPENING_MODES.length)].key,
     durationMinutes: getSessionMinutes(),
+    rapport: ch.rapport,
     stories: ch.stories
   };
   try {
@@ -370,7 +371,7 @@ function genCharacter(idNum){
   const occupationPool = occupations[ageRange];
   const pAvg = personalityPositiveIndex(p);
   const fAvg = +(Object.values(f).reduce((a,b)=>a+b,0)/functionalVars.length).toFixed(4);
-  return {id, name: pickName(gender), gender, ageRange, occupation: pickWeighted(occupationPool, categoricalProbabilities.occupation), hobby: pickTrait('hobby'), sexualOrientation: pickTrait('sexualOrientation'), physicalHealth: pickTrait('physicalHealth'), hereditaryPsychopathologyTendencies: pickTrait('hereditaryPsychopathologyTendencies'), communicationStyle: pickTrait('communicationStyle'), communicationRegion: pickTrait('communicationRegion'), reasonForFirstVisit: pickTrait('reasonForFirstVisit'), personality:p, functional:f, personalityAvg:pAvg, functionalAvg:fAvg};
+  return {id, name: pickName(gender), gender, ageRange, occupation: pickWeighted(occupationPool, categoricalProbabilities.occupation), hobby: pickTrait('hobby'), sexualOrientation: pickTrait('sexualOrientation'), physicalHealth: pickTrait('physicalHealth'), hereditaryPsychopathologyTendencies: pickTrait('hereditaryPsychopathologyTendencies'), communicationStyle: pickTrait('communicationStyle'), communicationRegion: pickTrait('communicationRegion'), reasonForFirstVisit: pickTrait('reasonForFirstVisit'), personality:p, functional:f, personalityAvg:pAvg, functionalAvg:fAvg, rapport:RAPPORT_INITIAL};
 }
 
 function generatePopulation(n){
@@ -612,7 +613,8 @@ function parseCSV(text){
       personality:p,
       functional:f,
       personalityAvg:pAvg,
-      functionalAvg:fAvg
+      functionalAvg:fAvg,
+      rapport:RAPPORT_INITIAL
     });
   }
   if(!chars.length) return alert('Nenhuma linha válida encontrada no CSV');

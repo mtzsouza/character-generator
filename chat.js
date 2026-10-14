@@ -3,7 +3,7 @@
 
 import { generateContent, responseText, getGeminiApiKey } from './gemini.js';
 import { DEFAULT_SESSION_MINUTES } from './settings.js';
-import { buildPatientSystemPrompt, resolvePhase, resolveSessionPressure } from './prompts/chatPrompt.js';
+import { buildPatientSystemPrompt, resolvePhase, resolveSessionPressure, RAPPORT_INITIAL, RAPPORT_MAX, RAPPORT_MIN, normalizeRapportDelta, applyRapportDelta, PATIENT_RESPONSE_SCHEMA } from './prompts/chatPrompt.js';
 import { buildGuardrailPrompt, GUARDRAIL_RESPONSE_SCHEMA, GUARDRAIL_NOTICES, OVERRIDABLE_CATEGORIES } from './prompts/guardrailPrompt.js';
 
 const params = new URLSearchParams(window.location.search);
@@ -223,6 +223,15 @@ let history = loadJSON(HISTORY_KEY) || [];
 let pending = false;
 let checking = false;
 
+function currentRapport(){
+  for(let i = history.length - 1; i >= 0; i--){
+    if(history[i].role === 'model' && typeof history[i].rapport === 'number'){
+      return history[i].rapport;
+    }
+  }
+  return patient.rapport ?? RAPPORT_INITIAL;
+}
+
 function renderMessages(){
   chatMessages.innerHTML = '';
   if(!history.length && !pending){
@@ -398,13 +407,26 @@ async function sendMessage(text, { skipGuardrail = false } = {}){
     // The phase is derived from the turn count, so a reloaded session resumes
     // wherever the conversation actually was.
     const exchange = history.filter(message => message.role === 'user').length;
+    const rapportBefore = currentRapport();
     const data = await generateContent({
-      systemInstruction: { parts: [{ text: buildPatientSystemPrompt(patient, resolvePhase(exchange), resolveSessionPressure(remainingRatio, isFinalMessage)) }] },
-      contents: history.map(message => ({ role: message.role, parts: [{ text: message.text }] }))
+      systemInstruction: { parts: [{ text: buildPatientSystemPrompt(patient, resolvePhase(exchange), resolveSessionPressure(remainingRatio, isFinalMessage), rapportBefore) }] },
+      contents: history.map(message => ({ role: message.role, parts: [{ text: message.text }] })),
+      generationConfig: { responseMimeType: 'application/json', responseSchema: PATIENT_RESPONSE_SCHEMA }
     });
-    const reply = responseText(data);
+    const responseJson = responseText(data);
+    if(!responseJson) throw new Error('O paciente não respondeu. Tente enviar novamente.');
+    let parsed;
+    try {
+      parsed = JSON.parse(responseJson);
+    } catch(e){
+      throw new Error('Resposta do paciente não é um JSON válido.');
+    }
+    const reply = parsed.reply || '';
     if(!reply) throw new Error('O paciente não respondeu. Tente enviar novamente.');
-    history.push({ role: 'model', text: reply });
+    const rawDelta = parsed.rapportDelta;
+    const delta = normalizeRapportDelta(rawDelta);
+    const rapportAfter = applyRapportDelta(rapportBefore, delta);
+    history.push({ role: 'model', text: reply, rapport: rapportAfter, rapportDelta: delta });
     saveJSON(HISTORY_KEY, history);
   } catch(err){
     showChatError((err && err.message) || 'Erro ao falar com o paciente.');
