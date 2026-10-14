@@ -3,20 +3,20 @@
 
 export const DIAGRAM_FIELDS = [
   {
-    group: 'Dados relevantes da infância',
-    fields: [{ id: 'infancia', label: 'Dados relevantes da infância' }]
+    group: 'Dados da infância',
+    fields: [{ id: 'infancia', label: 'Dados da infância' }]
   },
   {
-    group: 'Crença(s) central(is)',
-    fields: [{ id: 'crencas', label: 'Crença(s) central(is)' }]
+    group: 'Crenças centrais',
+    fields: [{ id: 'crencas', label: 'Crenças centrais' }]
   },
   {
-    group: 'Pressupostos / regras / atitudes condicionais',
-    fields: [{ id: 'pressupostos', label: 'Pressupostos / regras / atitudes condicionais' }]
+    group: 'Pressupostos e regras condicionais',
+    fields: [{ id: 'pressupostos', label: 'Pressupostos e regras condicionais' }]
   },
   {
-    group: 'Estratégia(s) compensatória(s)',
-    fields: [{ id: 'estrategias', label: 'Estratégia(s) compensatória(s)' }]
+    group: 'Estratégias compensatórias',
+    fields: [{ id: 'estrategias', label: 'Estratégias compensatórias' }]
   },
   {
     group: 'Situação 1',
@@ -59,9 +59,13 @@ export function buildDiagramForm(form, values = {}, onChange = null){
     form.appendChild(groupHeading);
 
     fields.forEach(({ id, label }) => {
-      const labelEl = document.createElement('label');
-      labelEl.htmlFor = id;
-      labelEl.textContent = label;
+      // Only add field label if it differs from the group heading
+      if(label !== group){
+        const fieldLabel = document.createElement('span');
+        fieldLabel.className = 'diagram-field-label';
+        fieldLabel.textContent = label;
+        form.appendChild(fieldLabel);
+      }
 
       const textarea = document.createElement('textarea');
       textarea.id = id;
@@ -73,7 +77,6 @@ export function buildDiagramForm(form, values = {}, onChange = null){
         textarea.addEventListener('input', (ev) => onChange(id, ev.target.value));
       }
 
-      form.appendChild(labelEl);
       form.appendChild(textarea);
     });
   });
